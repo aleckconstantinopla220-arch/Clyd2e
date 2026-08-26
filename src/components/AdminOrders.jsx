@@ -10,6 +10,7 @@ export default function AdminOrders() {
     const navigate = useNavigate()
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL
+    const adminId = user.id || (isAdmin ? 'admin001' : '')
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [orders, setOrders] = useState([])
     const [error, setError] = useState('')
@@ -21,11 +22,11 @@ export default function AdminOrders() {
             return
         }
 
-        fetch(`${API_BASE_URL}/api/orders?adminId=${encodeURIComponent(user.id)}`)
-            .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load orders')))
+        fetch(`${API_BASE_URL}/api/orders?adminId=${encodeURIComponent(adminId)}`)
+            .then(response => response.ok ? response.json() : Promise.reject(new Error(`Unable to load orders (${response.status})`)))
             .then(setOrders)
-            .catch(() => setError('Unable to load orders. Please check the server.'))
-    }, [navigate, user.id, isAdmin])
+            .catch(error => setError(error.message || 'Unable to load orders. Please check the server.'))
+    }, [navigate, adminId, isAdmin])
 
     const handleLogout = () => {
         localStorage.removeItem('user')
@@ -36,7 +37,7 @@ export default function AdminOrders() {
         fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminId: user.id, status: 'Order completed' })
+            body: JSON.stringify({ adminId, status: 'Order completed' })
         })
             .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to complete order')))
             .then(({ order: updatedOrder }) => {
