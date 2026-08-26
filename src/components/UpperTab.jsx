@@ -1,12 +1,7 @@
 import { useState } from 'react'
 
-export default function UpperTab({ isSidebarOpen, onToggleSidebar, onLogout, cartCount = 0, onCartClick, onShippingClick, isVisible = true, isAdmin = false }) {
+export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0, onCartClick, onShippingClick, isVisible = true, isAdmin = false }) {
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
-
-    const handleLogout = () => {
-        setIsAccountMenuOpen(false)
-        onLogout()
-    }
 
     const handleCartClick = () => {
         setIsAccountMenuOpen(false)
@@ -52,7 +47,6 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, onLogout, car
                         </button>
                         {isAccountMenuOpen && (
                             <div className="account-dropdown" role="menu">
-                                <button type="button" role="menuitem" onClick={handleLogout}>Logout</button>
                                 <button type="button" role="menuitem" onClick={handleCartClick}>My Cart</button>
                                 <button type="button" role="menuitem" onClick={handleShippingClick}>Shipping</button>
                             </div>

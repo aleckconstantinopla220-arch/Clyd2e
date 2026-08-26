@@ -11,7 +11,7 @@ export default function Cart() {
 
     const handleLogout = () => {
         localStorage.removeItem('user')
-        navigate('/login')
+        navigate('/home')
     }
 
     const removeItem = index => {

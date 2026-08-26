@@ -17,7 +17,7 @@ export default function Store() {
 
     const handleLogout = () => {
         localStorage.removeItem('user')
-        navigate('/login')
+        navigate('/home')
     }
 
     const visibleProducts = selectedCategory === 'ALL'

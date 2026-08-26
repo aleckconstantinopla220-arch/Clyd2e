@@ -12,7 +12,7 @@ export default function Shipping() {
 
     const handleLogout = () => {
         localStorage.removeItem('user')
-        navigate('/login')
+        navigate('/home')
     }
 
     return (

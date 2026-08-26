@@ -9,6 +9,7 @@ const __dirname = path.dirname(__filename)
 
 const app = express()
 const PORT = process.env.PORT || 3001
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'aleckconstantinopla220@gmail.com'
 const USERS_DB = path.join(__dirname, 'users.json')
 const PRODUCTS_DB = path.join(__dirname, 'products.json')
 const ORDERS_DB = path.join(__dirname, 'orders.json')
@@ -57,6 +58,8 @@ const readOrders = () => {
 const writeOrders = (orders) => {
     fs.writeFileSync(ORDERS_DB, JSON.stringify(orders, null, 2))
 }
+
+const isAdminUser = user => user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
 
 // Register endpoint
 app.post('/api/register', (req, res) => {
@@ -128,7 +131,7 @@ app.post('/api/login', (req, res) => {
 
         res.status(200).json({
             message: 'Login successful',
-            user: { id: user.id, username: user.username, email: user.email, isAdmin: user.isAdmin || false }
+            user: { id: user.id, username: user.username, email: user.email, isAdmin: isAdminUser(user) }
         })
     } catch (error) {
         res.status(500).json({ error: 'Login failed' })
@@ -182,7 +185,7 @@ app.get('/api/orders', (req, res) => {
     try {
         const { adminId } = req.query
         const users = readUsers()
-        const admin = users.find(user => user.id === adminId && user.isAdmin)
+        const admin = users.find(user => user.id === adminId && isAdminUser(user))
 
         if (!admin) {
             return res.status(401).json({ error: 'Unauthorized: Admin access required' })
@@ -204,7 +207,7 @@ app.post('/api/products', (req, res) => {
         }
 
         const users = readUsers()
-        const admin = users.find(u => u.id === adminId && u.isAdmin)
+        const admin = users.find(u => u.id === adminId && isAdminUser(u))
 
         if (!admin) {
             return res.status(401).json({ error: 'Unauthorized: Admin access required' })
@@ -242,7 +245,7 @@ app.put('/api/products/:id', (req, res) => {
         }
 
         const users = readUsers()
-        const admin = users.find(u => u.id === adminId && u.isAdmin)
+        const admin = users.find(u => u.id === adminId && isAdminUser(u))
 
         if (!admin) {
             return res.status(401).json({ error: 'Unauthorized: Admin access required' })
@@ -285,7 +288,7 @@ app.delete('/api/products/:id', (req, res) => {
         }
 
         const users = readUsers()
-        const admin = users.find(u => u.id === adminId && u.isAdmin)
+        const admin = users.find(u => u.id === adminId && isAdminUser(u))
 
         if (!admin) {
             return res.status(401).json({ error: 'Unauthorized: Admin access required' })

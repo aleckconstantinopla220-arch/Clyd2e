@@ -1,4 +1,4 @@
-# Login & Registration System with Database
+# Clyd2e Store
 
 ## Architecture Overview
 
@@ -6,7 +6,7 @@ Your application now has:
 
 - **Frontend**: React + Vite (runs on <http://localhost:5173>)
 - **Backend**: Express.js server (runs on <http://localhost:3001>)
-- **Database**: JSON-based user database (users.json)
+- **Data**: JSON files for products, users, and orders
 
 ## Running the Application
 
@@ -41,20 +41,14 @@ The frontend will run on <http://localhost:5173>
 
 ## Features
 
-### User Registration
+- Direct navigation to the home module
+- Product browsing and category filtering
+- Cart and order placement
+- Shipping status view
+- Admin order management
 
-1. Click "Sign up here" on the login page
-2. Enter email, password (minimum 6 characters), confirm password
-3. Accept terms and conditions
-4. Submit → Account is saved to `users.json`
-5. Automatically logged in and redirected to home page
-
-### User Login
-
-1. Enter registered email and password
-2. Submit → Credentials validated against database
-3. If valid → redirected to home page with welcome message
-4. If invalid → error message displayed
+The admin account is `aleckconstantinopla220@gmail.com`. You can override this
+address at runtime with the `ADMIN_EMAIL` environment variable.
 
 ### Database (users.json)
 
@@ -71,46 +65,6 @@ Located in the project root. Each user object contains:
 
 ## API Endpoints
 
-### POST /api/register
-
-**Request:**
-
-```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
-
-**Response (201):**
-
-```json
-{
-  "message": "Account created successfully",
-  "user": { "id": "...", "email": "..." }
-}
-```
-
-### POST /api/login
-
-**Request:**
-
-```json
-{
-  "email": "user@example.com",
-  "password": "password123"
-}
-```
-
-**Response (200):**
-
-```json
-{
-  "message": "Login successful",
-  "user": { "id": "...", "email": "..." }
-}
-```
-
 ### GET /api/health
 
 **Response:**
@@ -121,8 +75,6 @@ Located in the project root. Each user object contains:
 
 ## Important Notes
 
-⚠️ **Security**: Passwords are currently stored as plain text in the database. For production, implement proper password hashing using bcrypt or similar.
-
 📝 **File Structure:**
 
 ```
@@ -131,27 +83,22 @@ Clyd2e/
 ├── users.json             # User database (auto-created)
 ├── src/
 │   ├── components/
-│   │   ├── Login.jsx      # Updated to use API
-│   │   ├── Register.jsx   # Updated to use API
-│   │   └── Home.jsx
+│   │   ├── Home.jsx
+│   │   ├── Store.jsx
+│   │   ├── Cart.jsx
+│   │   └── Shipping.jsx
 │   └── styles/
 └── package.json
 ```
 
 ## Testing the System
 
-1. Open browser at <http://localhost:5173>
-2. Click "Sign up here"
-3. Register with email: <test@example.com>, password: password123
-4. You'll be logged in and see the home page
-5. Click Logout
-6. Login with the registered credentials
-7. Check `users.json` to see the stored user data
+1. Open the app at <http://localhost:5173>
+2. The home module opens automatically
+3. Browse the store, add products to the cart, and place an order
 
 ## Troubleshooting
 
 - **"Cannot connect to server" error**: Make sure the backend is running on port 3001
 - **Port already in use**: Change the PORT in server.js if port 3001 is busy
 - **CORS errors**: Make sure the backend server is running before accessing the frontend
-
-Enjoy your new login and registration system! 🎉
