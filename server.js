@@ -197,6 +197,37 @@ app.get('/api/orders', (req, res) => {
     }
 })
 
+// Mark an order as completed (admin only)
+app.put('/api/orders/:id', (req, res) => {
+    try {
+        const { id } = req.params
+        const { adminId, status } = req.body
+        const users = readUsers()
+        const admin = users.find(user => user.id === adminId && isAdminUser(user))
+
+        if (!admin) {
+            return res.status(401).json({ error: 'Unauthorized: Admin access required' })
+        }
+
+        const orders = readOrders()
+        const orderIndex = orders.findIndex(order => order.id === id)
+
+        if (orderIndex === -1) {
+            return res.status(404).json({ error: 'Order not found' })
+        }
+
+        orders[orderIndex] = {
+            ...orders[orderIndex],
+            status: status || 'Order completed'
+        }
+        writeOrders(orders)
+
+        res.status(200).json({ message: 'Order updated successfully', order: orders[orderIndex] })
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update order' })
+    }
+})
+
 // Add new product (admin only)
 app.post('/api/products', (req, res) => {
     try {

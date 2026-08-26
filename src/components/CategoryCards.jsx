@@ -7,6 +7,11 @@ export default function CategoryCards({ onSelect }) {
     const navigate = useNavigate()
     const sliderRef = useRef(null)
 
+    const handleStoreClick = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+        navigate('/store')
+    }
+
     const slide = direction => {
         sliderRef.current?.scrollBy({ left: direction * sliderRef.current.clientWidth, behavior: 'smooth' })
     }
@@ -22,7 +27,7 @@ export default function CategoryCards({ onSelect }) {
                         key={category}
                         type="button"
                         className="category-card"
-                        onClick={() => category === 'STORE' ? navigate('/store') : onSelect(category)}
+                        onClick={() => category === 'STORE' ? handleStoreClick() : onSelect(category)}
                     >
                         <span className="category-card-image" aria-hidden="true" />
                         <span className="category-card-name">

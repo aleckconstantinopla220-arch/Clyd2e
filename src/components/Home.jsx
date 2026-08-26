@@ -85,6 +85,7 @@ export default function Home() {
                 onLogout={handleLogout}
                 onCartClick={() => navigate('/cart')}
                 onShippingClick={() => navigate('/shipping')}
+                onAdminClick={() => navigate('/admin/orders')}
                 isAdmin={isAdmin}
                 isVisible={isNavVisible}
             />

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
@@ -14,6 +14,10 @@ export default function Store() {
     const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('cart') || '[]'))
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL
+
+    useEffect(() => {
+        window.scrollTo({ top: 0, behavior: 'smooth' })
+    }, [])
 
     const categories = ['ALL', 'APPAREL', 'MUSIC', 'PRINT', 'MISC']
 
@@ -43,6 +47,7 @@ export default function Store() {
                 cartCount={cart.length}
                 onCartClick={() => navigate('/cart')}
                 onShippingClick={() => navigate('/shipping')}
+                onAdminClick={() => navigate('/admin/orders')}
                 isAdmin={isAdmin}
             />
 

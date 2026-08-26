@@ -249,6 +249,38 @@ button {
     line-height: 1;
 }
 
+.orders-icon {
+    position: relative;
+    display: block;
+    width: 15px;
+    height: 17px;
+    border: 1.5px solid currentColor;
+    border-radius: 2px;
+}
+
+.orders-icon::before {
+    content: '';
+    position: absolute;
+    top: -4px;
+    left: 3px;
+    width: 7px;
+    height: 4px;
+    border: 1.5px solid currentColor;
+    border-bottom: none;
+    border-radius: 2px 2px 0 0;
+}
+
+.orders-icon::after {
+    content: '';
+    position: absolute;
+    top: 5px;
+    left: 3px;
+    width: 6px;
+    height: 1.5px;
+    background: currentColor;
+    box-shadow: 0 4px 0 currentColor;
+}
+
 .logout-link {
     background: none;
     border: none;
@@ -386,6 +418,35 @@ button {
     flex: 1;
     min-width: 0;
     width: 100%;
+    animation: page-pop-in 0.45s ease-out both;
+}
+
+.cart-page,
+.shipping-page,
+.admin-orders-page {
+    animation: page-pop-in 0.45s ease-out both;
+}
+
+@keyframes page-pop-in {
+    from {
+        opacity: 0;
+        transform: translateY(18px) scale(0.98);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+
+    .store-main,
+    .cart-page,
+    .shipping-page,
+    .admin-orders-page {
+        animation: none;
+    }
 }
 
 /* ---------- Hero ---------- */

@@ -1,7 +1,23 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 
 export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0, onCartClick, onShippingClick, isVisible = true, isAdmin = false }) {
+    const navigate = useNavigate()
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
+    const [adminOrderCount, setAdminOrderCount] = useState(0)
+
+    useEffect(() => {
+        if (!isAdmin) {
+            setAdminOrderCount(0)
+            return
+        }
+
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        fetch(`/api/orders?adminId=${encodeURIComponent(user.id || '')}`)
+            .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load orders')))
+            .then(orders => setAdminOrderCount(orders.length))
+            .catch(() => setAdminOrderCount(0))
+    }, [isAdmin])
 
     const handleCartClick = () => {
         setIsAccountMenuOpen(false)
@@ -11,6 +27,34 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
     const handleShippingClick = () => {
         setIsAccountMenuOpen(false)
         onShippingClick?.()
+    }
+
+    const handleOrdersClick = () => {
+        navigate('/admin/orders')
+    }
+
+    const handleRoleSwitch = () => {
+        setIsAccountMenuOpen(false)
+        if (isAdmin) {
+            const previousUser = localStorage.getItem('userBeforeAdmin')
+            if (previousUser) {
+                localStorage.setItem('user', previousUser)
+                localStorage.removeItem('userBeforeAdmin')
+            } else {
+                localStorage.removeItem('user')
+            }
+        } else {
+            const currentUser = localStorage.getItem('user')
+            if (currentUser) {
+                localStorage.setItem('userBeforeAdmin', currentUser)
+            }
+            localStorage.setItem('user', JSON.stringify({
+                id: 'admin001',
+                username: 'admin',
+                email: 'aleckconstantinopla220@gmail.com'
+            }))
+        }
+        navigate('/home')
     }
 
     return (
@@ -34,6 +78,12 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
                         <span className="cart-icon" aria-hidden="true" />
                         {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
                     </button>
+                    {isAdmin && (
+                        <button className="nav-icon-button orders-button" onClick={handleOrdersClick} aria-label={`Admin orders with ${adminOrderCount} orders`} title="Admin orders">
+                            <span className="orders-icon" aria-hidden="true" />
+                            <span className="cart-count">{adminOrderCount}</span>
+                        </button>
+                    )}
                     <div className="account-menu">
                         <button
                             className="nav-icon-button"
@@ -49,6 +99,9 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
                             <div className="account-dropdown" role="menu">
                                 <button type="button" role="menuitem" onClick={handleCartClick}>My Cart</button>
                                 <button type="button" role="menuitem" onClick={handleShippingClick}>Shipping</button>
+                                <button type="button" role="menuitem" onClick={handleRoleSwitch}>
+                                    {isAdmin ? 'Switch to User' : 'Switch to Admin'}
+                                </button>
                             </div>
                         )}
                     </div>

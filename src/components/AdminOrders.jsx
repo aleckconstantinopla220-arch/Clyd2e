@@ -32,6 +32,20 @@ export default function AdminOrders() {
         navigate('/home')
     }
 
+    const handleCompleteOrder = orderId => {
+        fetch(`/api/orders/${orderId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminId: user.id, status: 'Order completed' })
+        })
+            .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to complete order')))
+            .then(({ order: updatedOrder }) => {
+                setOrders(currentOrders => currentOrders.map(order => order.id === updatedOrder.id ? updatedOrder : order))
+                setSelectedOrder(currentOrder => currentOrder?.id === updatedOrder.id ? updatedOrder : currentOrder)
+            })
+            .catch(() => setError('Unable to complete order. Please check the server.'))
+    }
+
     return (
         <div className="store-container">
             <UpperTab
@@ -91,6 +105,17 @@ export default function AdminOrders() {
                                     <span>{order.items.length} item{order.items.length === 1 ? '' : 's'}</span>
                                     <strong>Total: ${Number(order.total).toFixed(2)}</strong>
                                 </div>
+                                <button
+                                    type="button"
+                                    className="complete-order-button"
+                                    disabled={order.status === 'Order completed'}
+                                    onClick={event => {
+                                        event.stopPropagation()
+                                        handleCompleteOrder(order.id)
+                                    }}
+                                >
+                                    {order.status === 'Order completed' ? 'Completed' : 'Complete order'}
+                                </button>
                             </article>
                         ))}
                     </section>

@@ -75,6 +75,29 @@
     font-size: 13px;
 }
 
+.complete-order-button {
+    width: 100%;
+    margin-top: 18px;
+    padding: 10px 14px;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    background: var(--ink);
+    color: var(--surface);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.complete-order-button:hover:not(:disabled) {
+    opacity: 0.75;
+}
+
+.complete-order-button:disabled {
+    border-color: var(--line);
+    background: var(--line);
+    color: var(--muted);
+    cursor: default;
+}
+
 .admin-order-product {
     display: flex;
     justify-content: space-between;
