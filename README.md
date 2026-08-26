@@ -10,6 +10,17 @@ Your application now has:
 
 ## Running the Application
 
+For a hosted frontend and backend on different domains, create a frontend environment
+variable before building:
+
+```bash
+VITE_API_URL=https://your-api-domain.example.com
+```
+
+Keep it empty or unset when the frontend and Express server use the same domain. The
+backend must be running and its storage must persist `orders.json`; ephemeral hosting
+storage will not retain orders after a restart.
+
 ### Option 1: Run Both Frontend & Backend Together (Recommended)
 
 ```bash

@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
-import { ADMIN_EMAIL } from '../config'
+import { ADMIN_EMAIL, API_BASE_URL } from '../config'
 import '../styles/Home.css'
 import '../styles/AdminOrders.css'
 
@@ -21,7 +21,7 @@ export default function AdminOrders() {
             return
         }
 
-        fetch(`/api/orders?adminId=${encodeURIComponent(user.id)}`)
+        fetch(`${API_BASE_URL}/api/orders?adminId=${encodeURIComponent(user.id)}`)
             .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load orders')))
             .then(setOrders)
             .catch(() => setError('Unable to load orders. Please check the server.'))
@@ -33,7 +33,7 @@ export default function AdminOrders() {
     }
 
     const handleCompleteOrder = orderId => {
-        fetch(`/api/orders/${orderId}`, {
+        fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ adminId: user.id, status: 'Order completed' })

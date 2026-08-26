@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { API_BASE_URL } from '../config'
 
 export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0, onCartClick, onShippingClick, isVisible = true, isAdmin = false }) {
     const navigate = useNavigate()
@@ -13,7 +14,7 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
         }
 
         const user = JSON.parse(localStorage.getItem('user') || '{}')
-        fetch(`/api/orders?adminId=${encodeURIComponent(user.id || '')}`)
+        fetch(`${API_BASE_URL}/api/orders?adminId=${encodeURIComponent(user.id || '')}`)
             .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load orders')))
             .then(orders => setAdminOrderCount(orders.length))
             .catch(() => setAdminOrderCount(0))

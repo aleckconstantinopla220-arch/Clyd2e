@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
-import { ADMIN_EMAIL } from '../config'
+import { ADMIN_EMAIL, API_BASE_URL } from '../config'
 import '../styles/Home.css'
 import '../styles/Cart.css'
 
@@ -29,18 +29,26 @@ export default function Cart() {
 
     const cartTotal = cart.reduce((total, product) => total + Number(product.price.replace('$', '')), 0)
 
-    const handlePurchase = () => {
+    const handlePurchase = async () => {
         const user = JSON.parse(localStorage.getItem('user') || '{}')
-        const previousOrders = JSON.parse(localStorage.getItem('orders') || '[]')
-        localStorage.setItem('orders', JSON.stringify([...previousOrders, ...cart.map(product => ({ ...product, userId: user.id }))]))
-        fetch('/api/orders', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ userId: user.id, items: cart })
-        }).catch(() => { })
-        localStorage.removeItem('cart')
-        setCart([])
-        setPurchaseMessage('Purchase complete. Thank you for your order.')
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/orders`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ userId: user.id, items: cart })
+            })
+
+            if (!response.ok) {
+                throw new Error('Order could not be saved')
+            }
+
+            localStorage.removeItem('cart')
+            localStorage.removeItem('orders')
+            setCart([])
+            setPurchaseMessage('Purchase complete. Thank you for your order.')
+        } catch (error) {
+            setPurchaseMessage('Purchase failed. Please try again.')
+        }
     }
 
     return (

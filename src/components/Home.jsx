@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import CategoryCards from './CategoryCards'
 import UpperTab from './UpperTab'
-import { ADMIN_EMAIL } from '../config'
+import { ADMIN_EMAIL, API_BASE_URL } from '../config'
 import '../styles/Home.css'
 
 export default function Home() {
@@ -21,7 +21,7 @@ export default function Home() {
 
     const fetchProducts = async () => {
         try {
-            const response = await fetch('/api/products')
+            const response = await fetch(`${API_BASE_URL}/api/products`)
             const data = await response.json()
             setProducts(data)
         } catch (err) {
