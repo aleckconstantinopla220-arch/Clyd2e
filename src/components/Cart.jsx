@@ -28,11 +28,11 @@ export default function Cart() {
         const user = JSON.parse(localStorage.getItem('user') || '{}')
         const previousOrders = JSON.parse(localStorage.getItem('orders') || '[]')
         localStorage.setItem('orders', JSON.stringify([...previousOrders, ...cart.map(product => ({ ...product, userId: user.id }))]))
-        fetch('http://localhost:3001/api/orders', {
+        fetch('/api/orders', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ userId: user.id, items: cart })
-        }).catch(() => {})
+        }).catch(() => { })
         localStorage.removeItem('cart')
         setCart([])
         setPurchaseMessage('Purchase complete. Thank you for your order.')

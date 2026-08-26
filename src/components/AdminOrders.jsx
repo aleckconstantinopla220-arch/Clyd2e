@@ -19,7 +19,7 @@ export default function AdminOrders() {
             return
         }
 
-        fetch(`http://localhost:3001/api/orders?adminId=${encodeURIComponent(user.id)}`)
+        fetch(`/api/orders?adminId=${encodeURIComponent(user.id)}`)
             .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load orders')))
             .then(setOrders)
             .catch(() => setError('Unable to load orders. Please check the server.'))
