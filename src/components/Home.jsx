@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import CategoryCards from './CategoryCards'
 import UpperTab from './UpperTab'
+import { ADMIN_EMAIL } from '../config'
 import '../styles/Home.css'
 
 export default function Home() {
@@ -56,6 +57,7 @@ export default function Home() {
     }
 
     const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL
 
     const tourDates = []
 
@@ -83,7 +85,7 @@ export default function Home() {
                 onLogout={handleLogout}
                 onCartClick={() => navigate('/cart')}
                 onShippingClick={() => navigate('/shipping')}
-                isAdmin={user.isAdmin}
+                isAdmin={isAdmin}
                 isVisible={isNavVisible}
             />
 
@@ -94,7 +96,7 @@ export default function Home() {
                     selectedCategory={selectedCategory}
                     onCategorySelect={setSelectedCategory}
                     onClose={() => setIsSidebarOpen(false)}
-                    isAdmin={user.isAdmin}
+                    isAdmin={isAdmin}
                     onOrdersClick={() => navigate('/admin/orders')}
                 />
 

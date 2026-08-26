@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
 import products from '../../products.json'
+import { ADMIN_EMAIL } from '../config'
 import '../styles/Home.css'
 import '../styles/Store.css'
 
@@ -12,6 +13,7 @@ export default function Store() {
     const [selectedCategory, setSelectedCategory] = useState('ALL')
     const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('cart') || '[]'))
     const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL
 
     const categories = ['ALL', 'APPAREL', 'MUSIC', 'PRINT', 'MISC']
 
@@ -41,7 +43,7 @@ export default function Store() {
                 cartCount={cart.length}
                 onCartClick={() => navigate('/cart')}
                 onShippingClick={() => navigate('/shipping')}
-                isAdmin={user.isAdmin}
+                isAdmin={isAdmin}
             />
 
             <div className="store-body">
@@ -51,7 +53,7 @@ export default function Store() {
                     selectedCategory={selectedCategory}
                     onCategorySelect={setSelectedCategory}
                     onClose={() => setIsSidebarOpen(false)}
-                    isAdmin={user.isAdmin}
+                    isAdmin={isAdmin}
                     onOrdersClick={() => navigate('/admin/orders')}
                 />
 

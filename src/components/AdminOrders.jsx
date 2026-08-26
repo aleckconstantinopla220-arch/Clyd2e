@@ -2,19 +2,21 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
+import { ADMIN_EMAIL } from '../config'
 import '../styles/Home.css'
 import '../styles/AdminOrders.css'
 
 export default function AdminOrders() {
     const navigate = useNavigate()
     const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [orders, setOrders] = useState([])
     const [error, setError] = useState('')
     const [selectedOrder, setSelectedOrder] = useState(null)
 
     useEffect(() => {
-        if (!user.isAdmin) {
+        if (!isAdmin) {
             navigate('/home', { replace: true })
             return
         }
@@ -23,7 +25,7 @@ export default function AdminOrders() {
             .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load orders')))
             .then(setOrders)
             .catch(() => setError('Unable to load orders. Please check the server.'))
-    }, [navigate, user.id, user.isAdmin])
+    }, [navigate, user.id, isAdmin])
 
     const handleLogout = () => {
         localStorage.removeItem('user')
