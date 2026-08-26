@@ -60,6 +60,9 @@ const writeOrders = (orders) => {
 }
 
 const isAdminUser = user => user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCase()
+const isAuthorizedAdmin = (users, adminId, adminEmail) => users.some(user =>
+    isAdminUser(user) && ((adminId && user.id === adminId) || (adminEmail && user.email.toLowerCase() === adminEmail.toLowerCase()))
+)
 
 // Register endpoint
 app.post('/api/register', (req, res) => {
@@ -186,11 +189,10 @@ app.post('/api/orders', (req, res) => {
 // View all orders (admin only)
 app.get('/api/orders', (req, res) => {
     try {
-        const { adminId } = req.query
+        const { adminId, adminEmail } = req.query
         const users = readUsers()
-        const admin = users.find(user => user.id === adminId && isAdminUser(user))
 
-        if (!admin) {
+        if (!isAuthorizedAdmin(users, adminId, adminEmail)) {
             return res.status(401).json({ error: 'Unauthorized: Admin access required' })
         }
 
@@ -204,11 +206,10 @@ app.get('/api/orders', (req, res) => {
 app.put('/api/orders/:id', (req, res) => {
     try {
         const { id } = req.params
-        const { adminId, status } = req.body
+        const { adminId, adminEmail, status } = req.body
         const users = readUsers()
-        const admin = users.find(user => user.id === adminId && isAdminUser(user))
 
-        if (!admin) {
+        if (!isAuthorizedAdmin(users, adminId, adminEmail)) {
             return res.status(401).json({ error: 'Unauthorized: Admin access required' })
         }
 

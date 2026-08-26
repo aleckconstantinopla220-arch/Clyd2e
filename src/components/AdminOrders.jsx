@@ -22,7 +22,7 @@ export default function AdminOrders() {
             return
         }
 
-        fetch(`${API_BASE_URL}/api/orders?adminId=${encodeURIComponent(adminId)}`)
+        fetch(`${API_BASE_URL}/api/orders?adminId=${encodeURIComponent(adminId)}&adminEmail=${encodeURIComponent(user.email || '')}`)
             .then(response => response.ok ? response.json() : Promise.reject(new Error(`Unable to load orders (${response.status})`)))
             .then(setOrders)
             .catch(error => setError(error.message || 'Unable to load orders. Please check the server.'))
@@ -37,7 +37,7 @@ export default function AdminOrders() {
         fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminId, status: 'Order completed' })
+            body: JSON.stringify({ adminId, adminEmail: user.email, status: 'Order completed' })
         })
             .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to complete order')))
             .then(({ order: updatedOrder }) => {

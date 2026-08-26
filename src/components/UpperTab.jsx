@@ -15,7 +15,7 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
 
         const user = JSON.parse(localStorage.getItem('user') || '{}')
         const adminId = user.id || (user.email?.toLowerCase() === ADMIN_EMAIL ? 'admin001' : '')
-        fetch(`${API_BASE_URL}/api/orders?adminId=${encodeURIComponent(adminId)}`)
+        fetch(`${API_BASE_URL}/api/orders?adminId=${encodeURIComponent(adminId)}&adminEmail=${encodeURIComponent(user.email || '')}`)
             .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load orders')))
             .then(orders => setAdminOrderCount(orders.length))
             .catch(() => setAdminOrderCount(0))
