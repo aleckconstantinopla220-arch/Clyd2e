@@ -1,0 +1,30 @@
+[
+    {
+        "id": 1,
+        "name": "Wired Tour Tee",
+        "category": "APPAREL",
+        "price": "$28.00",
+        "image": "TEE — ELK"
+    },
+    {
+        "id": 2,
+        "name": "Static Hoodie",
+        "category": "APPAREL",
+        "price": "$56.00",
+        "image": "HOODIE — RUST"
+    },
+    {
+        "id": 3,
+        "name": "Signal Cap",
+        "category": "APPAREL",
+        "price": "$24.00",
+        "image": "CAP — TAN"
+    },
+    {
+        "id": 4,
+        "name": "Live Wires 7\"",
+        "category": "MUSIC",
+        "price": "$14.00",
+        "image": "7\" VINYL"
+    }
+]

@@ -1,0 +1,28 @@
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom'
+import Login from './components/Login'
+import Register from './components/Register'
+import Home from './components/Home'
+import Store from './components/Store'
+import Cart from './components/Cart'
+import Shipping from './components/Shipping'
+import AdminOrders from './components/AdminOrders'
+import './App.css'
+
+function App() {
+  return (
+    <Router>
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/home" element={<Home />} />
+        <Route path="/store" element={<Store />} />
+        <Route path="/cart" element={<Cart />} />
+        <Route path="/shipping" element={<Shipping />} />
+        <Route path="/admin/orders" element={<AdminOrders />} />
+        <Route path="/" element={<Navigate to="/login" replace />} />
+      </Routes>
+    </Router>
+  )
+}
+
+export default App

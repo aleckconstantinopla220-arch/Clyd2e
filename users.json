@@ -1,0 +1,24 @@
+[
+  {
+    "id": "1786975264032",
+    "username": "aleck",
+    "email": "aleck@gmail.com",
+    "password": "tantan",
+    "createdAt": "2026-08-17T14:01:04.032Z"
+  },
+  {
+    "id": "1787063414755",
+    "username": "Snxkie",
+    "email": "Snxkie@gmail.com",
+    "password": "renren",
+    "createdAt": "2026-08-18T14:30:14.755Z"
+  },
+  {
+    "id": "admin001",
+    "username": "admin",
+    "email": "admin@store.com",
+    "password": "admin123",
+    "isAdmin": true,
+    "createdAt": "2026-08-18T14:30:14.755Z"
+  }
+]
