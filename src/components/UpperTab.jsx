@@ -1,7 +1,25 @@
 import { useState } from 'react'
 
+const ADMIN_EMAIL = 'aleckconstantinopla220@gmail.com'
+
 export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0, onCartClick, onShippingClick, isVisible = true, isAdmin = false }) {
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
+
+    const handleAdminAccess = () => {
+        const email = window.prompt('Enter the admin Gmail address')?.trim().toLowerCase()
+
+        if (email !== ADMIN_EMAIL) {
+            return
+        }
+
+        localStorage.setItem('user', JSON.stringify({
+            id: 'admin001',
+            username: 'admin',
+            email: ADMIN_EMAIL,
+            isAdmin: true
+        }))
+        window.location.reload()
+    }
 
     const handleCartClick = () => {
         setIsAccountMenuOpen(false)
@@ -49,6 +67,7 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
                             <div className="account-dropdown" role="menu">
                                 <button type="button" role="menuitem" onClick={handleCartClick}>My Cart</button>
                                 <button type="button" role="menuitem" onClick={handleShippingClick}>Shipping</button>
+                                <button type="button" role="menuitem" onClick={handleAdminAccess}>Admin access</button>
                             </div>
                         )}
                     </div>
