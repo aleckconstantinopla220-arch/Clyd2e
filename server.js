@@ -151,19 +151,22 @@ app.get('/api/products', (req, res) => {
 // Create an order for a signed-in user
 app.post('/api/orders', (req, res) => {
     try {
-        const { userId, items } = req.body
-        const users = readUsers()
-        const user = users.find(existingUser => existingUser.id === userId)
+        const { items, customer = {} } = req.body
 
-        if (!user || !Array.isArray(items) || items.length === 0) {
-            return res.status(400).json({ error: 'A valid user and at least one item are required' })
+        const customerEmail = String(customer.email || '').trim().toLowerCase()
+        const customerName = String(customer.name || '').trim()
+        const customerAddress = String(customer.address || '').trim()
+
+        if (!Array.isArray(items) || items.length === 0 || !customerName || !customerEmail || !customerAddress) {
+            return res.status(400).json({ error: 'Items, name, email and address are required' })
         }
 
         const order = {
             id: Date.now().toString(),
-            userId: user.id,
-            username: user.username,
-            email: user.email,
+            userId: null,
+            username: customerName,
+            email: customerEmail,
+            address: customerAddress,
             items,
             total: items.reduce((sum, item) => sum + Number(String(item.price).replace('$', '')), 0),
             status: 'Order confirmed',

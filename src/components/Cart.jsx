@@ -11,6 +11,9 @@ export default function Cart() {
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('cart') || '[]'))
     const [purchaseMessage, setPurchaseMessage] = useState('')
+    const [isPurchasing, setIsPurchasing] = useState(false)
+    const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
+    const [customer, setCustomer] = useState({ name: '', email: '', address: '' })
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL
 
@@ -29,25 +32,48 @@ export default function Cart() {
 
     const cartTotal = cart.reduce((total, product) => total + Number(product.price.replace('$', '')), 0)
 
-    const handlePurchase = async () => {
-        const user = JSON.parse(localStorage.getItem('user') || '{}')
+    const handlePurchase = async event => {
+        event.preventDefault()
+        if (cart.length === 0 || isPurchasing) {
+            setPurchaseMessage('Please add an item before purchasing.')
+            return
+        }
+
+        setIsPurchasing(true)
+        setPurchaseMessage('')
         try {
             const response = await fetch(`${API_BASE_URL}/api/orders`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ userId: user.id, items: cart })
+                body: JSON.stringify({ items: cart, customer })
             })
 
             if (!response.ok) {
-                throw new Error('Order could not be saved')
+                const result = await response.json().catch(() => ({}))
+                throw new Error(result.error || 'Order could not be saved')
             }
 
+            const { order } = await response.json()
+            const previousOrders = JSON.parse(localStorage.getItem('orders') || '[]')
+            localStorage.setItem('orders', JSON.stringify([...previousOrders, ...order.items.map(item => ({
+                ...item,
+                orderId: order.id,
+                username: order.username,
+                email: order.email,
+                address: order.address,
+                status: order.status,
+                createdAt: order.createdAt
+            }))]))
             localStorage.removeItem('cart')
-            localStorage.removeItem('orders')
             setCart([])
+            setIsCheckoutOpen(false)
+            setCustomer({ name: '', email: '', address: '' })
             setPurchaseMessage('Purchase complete. Thank you for your order.')
+            navigate('/shipping')
         } catch (error) {
-            setPurchaseMessage('Purchase failed. Please try again.')
+            setPurchaseMessage(`Purchase failed: ${error.message}`)
+        } finally {
+            setIsPurchasing(false)
         }
     }
 
@@ -98,7 +124,8 @@ export default function Cart() {
                             </section>
                             <footer className="cart-summary">
                                 <span>Total: ${cartTotal.toFixed(2)}</span>
-                                <button type="button" className="purchase-button" onClick={handlePurchase}>
+                                {purchaseMessage && <p className="purchase-message" role="alert">{purchaseMessage}</p>}
+                                <button type="button" className="purchase-button" onClick={() => setIsCheckoutOpen(true)} disabled={isPurchasing}>
                                     Purchase
                                 </button>
                             </footer>
@@ -106,6 +133,34 @@ export default function Cart() {
                     )}
                 </main>
             </div>
+            {isCheckoutOpen && (
+                <div className="checkout-backdrop" onClick={() => setIsCheckoutOpen(false)}>
+                    <form className="checkout-dialog" onSubmit={handlePurchase} onClick={event => event.stopPropagation()}>
+                        <div className="checkout-header">
+                            <div>
+                                <p className="module-page-label">Checkout</p>
+                                <h2>Complete your order</h2>
+                            </div>
+                            <button type="button" className="checkout-close" onClick={() => setIsCheckoutOpen(false)} aria-label="Close checkout">×</button>
+                        </div>
+                        <label>
+                            Name
+                            <input type="text" value={customer.name} onChange={event => setCustomer({ ...customer, name: event.target.value })} required />
+                        </label>
+                        <label>
+                            Email
+                            <input type="email" value={customer.email} onChange={event => setCustomer({ ...customer, email: event.target.value })} required />
+                        </label>
+                        <label>
+                            Address
+                            <textarea value={customer.address} onChange={event => setCustomer({ ...customer, address: event.target.value })} required rows="3" />
+                        </label>
+                        <button type="submit" className="purchase-button" disabled={isPurchasing}>
+                            {isPurchasing ? 'Processing...' : 'Purchase'}
+                        </button>
+                    </form>
+                </div>
+            )}
         </div>
     )
 }

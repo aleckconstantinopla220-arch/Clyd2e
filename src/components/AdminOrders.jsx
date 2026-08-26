@@ -96,7 +96,7 @@ export default function AdminOrders() {
                             >
                                 <div className="admin-order-heading">
                                     <div>
-                                        <p className="order-user">{order.username} · {order.email}</p>
+                                        <p className="order-user">{order.username}{order.email ? ` · ${order.email}` : ''}</p>
                                         <p className="order-date">{new Date(order.createdAt).toLocaleString()}</p>
                                     </div>
                                     <span className="shipping-status">{order.status}</span>
@@ -105,6 +105,7 @@ export default function AdminOrders() {
                                     <span>{order.items.length} item{order.items.length === 1 ? '' : 's'}</span>
                                     <strong>Total: ${Number(order.total).toFixed(2)}</strong>
                                 </div>
+                                {order.address && <p className="order-address">Ship to: {order.address}</p>}
                                 <button
                                     type="button"
                                     className="complete-order-button"
@@ -129,6 +130,7 @@ export default function AdminOrders() {
                                 <p className="module-page-label">Customer order</p>
                                 <h2 id="order-modal-title">{selectedOrder.username}</h2>
                                 <p>{selectedOrder.email}</p>
+                                {selectedOrder.address && <p>{selectedOrder.address}</p>}
                             </div>
                             <button type="button" className="order-modal-close" onClick={() => setSelectedOrder(null)} aria-label="Close order details">×</button>
                         </div>
