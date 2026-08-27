@@ -21,6 +21,13 @@ Keep it empty or unset when the frontend and Express server use the same domain.
 backend must be running and its storage must persist `orders.json`; ephemeral hosting
 storage will not retain orders after a restart.
 
+For Render, attach a persistent disk mounted at `/var/data` to the backend service and
+set this environment variable:
+
+```bash
+ORDERS_DB_PATH=/var/data/orders.json
+```
+
 ### Option 1: Run Both Frontend & Backend Together (Recommended)
 
 ```bash

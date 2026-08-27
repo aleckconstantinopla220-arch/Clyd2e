@@ -15,6 +15,7 @@ export default function AdminOrders() {
     const [orders, setOrders] = useState([])
     const [error, setError] = useState('')
     const [selectedOrder, setSelectedOrder] = useState(null)
+    const [orderToRemove, setOrderToRemove] = useState(null)
 
     useEffect(() => {
         if (!isAdmin) {
@@ -33,18 +34,33 @@ export default function AdminOrders() {
         navigate('/home')
     }
 
-    const handleCompleteOrder = orderId => {
+    const updateOrderStatus = (orderId, status) => {
         fetch(`${API_BASE_URL}/api/orders/${orderId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ adminId, adminEmail: user.email, status: 'Order completed' })
+            body: JSON.stringify({ adminId, adminEmail: user.email, status })
         })
             .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to complete order')))
             .then(({ order: updatedOrder }) => {
+                localStorage.setItem(`order-status-${updatedOrder.id}`, updatedOrder.status)
                 setOrders(currentOrders => currentOrders.map(order => order.id === updatedOrder.id ? updatedOrder : order))
                 setSelectedOrder(currentOrder => currentOrder?.id === updatedOrder.id ? updatedOrder : currentOrder)
             })
             .catch(() => setError('Unable to complete order. Please check the server.'))
+    }
+
+    const removeCompletedOrder = orderId => {
+        fetch(`${API_BASE_URL}/api/orders/${orderId}/remove`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ adminId, adminEmail: user.email })
+        })
+            .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to remove order')))
+            .then(() => {
+                setOrders(currentOrders => currentOrders.filter(order => order.id !== orderId))
+                setOrderToRemove(null)
+            })
+            .catch(() => setError('Unable to remove order. Please check the server.'))
     }
 
     return (
@@ -107,17 +123,29 @@ export default function AdminOrders() {
                                     <strong>Total: ${Number(order.total).toFixed(2)}</strong>
                                 </div>
                                 {order.address && <p className="order-address">Ship to: {order.address}</p>}
-                                <button
-                                    type="button"
-                                    className="complete-order-button"
-                                    disabled={order.status === 'Order completed'}
-                                    onClick={event => {
+                                {order.status === 'Order completed' ? (
+                                    <div className="completed-order-actions">
+                                        <button type="button" className="undo-order-button" onClick={event => {
+                                            event.stopPropagation()
+                                            updateOrderStatus(order.id, 'Order confirmed')
+                                        }}>
+                                            Undo
+                                        </button>
+                                        <button type="button" className="complete-order-button" onClick={event => {
+                                            event.stopPropagation()
+                                            setOrderToRemove(order)
+                                        }}>
+                                            Completed
+                                        </button>
+                                    </div>
+                                ) : (
+                                    <button type="button" className="complete-order-button" onClick={event => {
                                         event.stopPropagation()
-                                        handleCompleteOrder(order.id)
-                                    }}
-                                >
-                                    {order.status === 'Order completed' ? 'Completed' : 'Complete order'}
-                                </button>
+                                        updateOrderStatus(order.id, 'Order completed')
+                                    }}>
+                                        Complete order
+                                    </button>
+                                )}
                             </article>
                         ))}
                     </section>
@@ -131,7 +159,12 @@ export default function AdminOrders() {
                                 <p className="module-page-label">Customer order</p>
                                 <h2 id="order-modal-title">{selectedOrder.username}</h2>
                                 <p>{selectedOrder.email}</p>
-                                {selectedOrder.address && <p>{selectedOrder.address}</p>}
+                                {selectedOrder.address && (
+                                    <p className="order-address-detail">
+                                        <span className="house-icon" aria-hidden="true" />
+                                        <span>{selectedOrder.address}</span>
+                                    </p>
+                                )}
                             </div>
                             <button type="button" className="order-modal-close" onClick={() => setSelectedOrder(null)} aria-label="Close order details">×</button>
                         </div>
@@ -146,6 +179,30 @@ export default function AdminOrders() {
                         <div className="order-modal-summary">
                             <span>{selectedOrder.status}</span>
                             <strong>Total: ${Number(selectedOrder.total).toFixed(2)}</strong>
+                        </div>
+                    </section>
+                </div>
+            )}
+            {orderToRemove && (
+                <div className="order-modal-backdrop" onClick={() => setOrderToRemove(null)}>
+                    <section className="order-confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="remove-order-title" onClick={event => event.stopPropagation()}>
+                        <p className="module-page-label">Completed order</p>
+                        <h2 id="remove-order-title">Order Completed?</h2>
+                        <p className="order-confirmation-details">
+                            {orderToRemove.username}{orderToRemove.email ? ` · ${orderToRemove.email}` : ''}
+                        </p>
+                        <p className="order-confirmation-details">{orderToRemove.items.length} item{orderToRemove.items.length === 1 ? '' : 's'} · ${Number(orderToRemove.total).toFixed(2)}</p>
+                        <div className="order-confirmation-items" aria-label="Items in this order">
+                            {orderToRemove.items.map((item, index) => (
+                                <div className="order-confirmation-item" key={`${item.id}-${index}`}>
+                                    <span>{item.name}</span>
+                                    <span>{item.price}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="order-confirmation-actions">
+                            <button type="button" className="undo-order-button" onClick={() => setOrderToRemove(null)}>No</button>
+                            <button type="button" className="complete-order-button" onClick={() => removeCompletedOrder(orderToRemove.id)}>Yes</button>
                         </div>
                     </section>
                 </div>

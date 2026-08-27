@@ -2,6 +2,9 @@ import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 const siteCategories = ['STORE', 'WEBTOON', 'PINYA', 'PATREON']
+const webtoonUrl = 'https://www.webtoons.com/p/community/en/u/cly2e'
+const pinyaUrl = 'https://pinya.io/cly2e'
+const patreonUrl = 'https://www.patreon.com/join/cly2e?utm_source=webtoons&utm_medium=link&utm_campaign=cly2e&redirect_uri=http%3A%2F%2Fm.webtoons.com%2Fchallenge%2FpatreonCallback'
 
 export default function CategoryCards({ onSelect }) {
     const navigate = useNavigate()
@@ -27,7 +30,19 @@ export default function CategoryCards({ onSelect }) {
                         key={category}
                         type="button"
                         className="category-card"
-                        onClick={() => category === 'STORE' ? handleStoreClick() : onSelect(category)}
+                        onClick={() => {
+                            if (category === 'STORE') {
+                                handleStoreClick()
+                            } else if (category === 'WEBTOON') {
+                                window.location.assign(webtoonUrl)
+                            } else if (category === 'PINYA') {
+                                window.location.assign(pinyaUrl)
+                            } else if (category === 'PATREON') {
+                                window.location.assign(patreonUrl)
+                            } else {
+                                onSelect(category)
+                            }
+                        }}
                     >
                         <span className="category-card-image" aria-hidden="true" />
                         <span className="category-card-name">

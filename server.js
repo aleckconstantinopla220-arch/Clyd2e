@@ -12,7 +12,7 @@ const PORT = process.env.PORT || 3001
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'aleckconstantinopla220@gmail.com'
 const USERS_DB = path.join(__dirname, 'users.json')
 const PRODUCTS_DB = path.join(__dirname, 'products.json')
-const ORDERS_DB = path.join(__dirname, 'orders.json')
+const ORDERS_DB = process.env.ORDERS_DB_PATH || path.join(__dirname, 'orders.json')
 
 // Middleware
 app.use(cors())
@@ -23,6 +23,8 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 // Initialize database file if it doesn't exist
+fs.mkdirSync(path.dirname(ORDERS_DB), { recursive: true })
+
 if (!fs.existsSync(USERS_DB)) {
     fs.writeFileSync(USERS_DB, JSON.stringify([]))
 }
@@ -202,6 +204,21 @@ app.get('/api/orders', (req, res) => {
     }
 })
 
+// Read the public status of one order for shipping updates
+app.get('/api/orders/:id/status', (req, res) => {
+    try {
+        const order = readOrders().find(existingOrder => existingOrder.id === req.params.id)
+
+        if (!order) {
+            return res.status(404).json({ error: 'Order not found' })
+        }
+
+        res.status(200).json({ id: order.id, status: order.status })
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch order status' })
+    }
+})
+
 // Mark an order as completed (admin only)
 app.put('/api/orders/:id', (req, res) => {
     try {
@@ -229,6 +246,33 @@ app.put('/api/orders/:id', (req, res) => {
         res.status(200).json({ message: 'Order updated successfully', order: orders[orderIndex] })
     } catch (error) {
         res.status(500).json({ error: 'Failed to update order' })
+    }
+})
+
+// Remove a completed order (admin only)
+app.post('/api/orders/:id/remove', (req, res) => {
+    try {
+        const { id } = req.params
+        const { adminId, adminEmail } = req.body
+        const users = readUsers()
+
+        if (!isAuthorizedAdmin(users, adminId, adminEmail)) {
+            return res.status(401).json({ error: 'Unauthorized: Admin access required' })
+        }
+
+        const orders = readOrders()
+        const orderIndex = orders.findIndex(order => order.id === id)
+
+        if (orderIndex === -1) {
+            return res.status(404).json({ error: 'Order not found' })
+        }
+
+        orders.splice(orderIndex, 1)
+        writeOrders(orders)
+
+        res.status(200).json({ message: 'Order removed successfully' })
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to remove order' })
     }
 })
 

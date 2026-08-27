@@ -80,6 +80,9 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
                         <span className="cart-icon" aria-hidden="true" />
                         {cartCount > 0 && <span className="cart-count">{cartCount}</span>}
                     </button>
+                    <button className="nav-icon-button shipping-button" onClick={handleShippingClick} aria-label="Shipping orders" title="Shipping">
+                        <span className="shipping-icon" aria-hidden="true" />
+                    </button>
                     {isAdmin && (
                         <button className="nav-icon-button orders-button" onClick={handleOrdersClick} aria-label={`Admin orders with ${adminOrderCount} orders`} title="Admin orders">
                             <span className="orders-icon" aria-hidden="true" />

@@ -10,6 +10,8 @@ export default function Cart() {
     const navigate = useNavigate()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('cart') || '[]'))
+    const [orderedItems] = useState(() => JSON.parse(localStorage.getItem('orders') || '[]'))
+    const [selectedOrder, setSelectedOrder] = useState(null)
     const [purchaseMessage, setPurchaseMessage] = useState('')
     const [isPurchasing, setIsPurchasing] = useState(false)
     const [isCheckoutOpen, setIsCheckoutOpen] = useState(false)
@@ -31,6 +33,14 @@ export default function Cart() {
     }
 
     const cartTotal = cart.reduce((total, product) => total + Number(product.price.replace('$', '')), 0)
+    const orderedGroups = orderedItems.reduce((groups, item) => {
+        const orderKey = item.orderId || item.id
+        if (!groups[orderKey]) {
+            groups[orderKey] = { ...item, items: [] }
+        }
+        groups[orderKey].items.push(item)
+        return groups
+    }, {})
 
     const handlePurchase = async event => {
         event.preventDefault()
@@ -104,7 +114,36 @@ export default function Cart() {
                     </header>
 
                     {cart.length === 0 ? (
-                        <p className="empty-cart">{purchaseMessage || 'Your cart is empty.'}</p>
+                        <>
+                            <p className="empty-cart">{purchaseMessage || 'Your cart is empty.'}</p>
+                            {orderedItems.length > 0 && (
+                                <section className="ordered-items-section" aria-label="Items you have ordered">
+                                    <h2 className="ordered-items-title">Items you have ordered</h2>
+                                    <div className="ordered-items-cards">
+                                        {Object.values(orderedGroups).map(order => (
+                                            <article className="ordered-item-card" key={order.orderId || order.id} role="button" tabIndex="0" onClick={() => setSelectedOrder(order)} onKeyDown={event => {
+                                                if (event.key === 'Enter' || event.key === ' ') {
+                                                    event.preventDefault()
+                                                    setSelectedOrder(order)
+                                                }
+                                            }}>
+                                                <div className="ordered-item-header">
+                                                    <div>
+                                                        <p className="product-category">Order {order.orderId || order.id}</p>
+                                                        <p className="shipping-status">{order.status || 'Order confirmed'}</p>
+                                                    </div>
+                                                    <span>{order.items.length} item{order.items.length === 1 ? '' : 's'}</span>
+                                                </div>
+                                                <div className="ordered-item-footer">
+                                                    <span>{order.email}</span>
+                                                    <strong>Total: ${order.items.reduce((total, item) => total + Number(item.price.replace('$', '')), 0).toFixed(2)}</strong>
+                                                </div>
+                                            </article>
+                                        ))}
+                                    </div>
+                                </section>
+                            )}
+                        </>
                     ) : (
                         <>
                             <section className="cart-items" aria-label="Purchased items">
@@ -159,6 +198,33 @@ export default function Cart() {
                             {isPurchasing ? 'Processing...' : 'Purchase'}
                         </button>
                     </form>
+                </div>
+            )}
+            {selectedOrder && (
+                <div className="ordered-details-backdrop" onClick={() => setSelectedOrder(null)}>
+                    <section className="ordered-details-dialog" role="dialog" aria-modal="true" aria-labelledby="ordered-details-title" onClick={event => event.stopPropagation()}>
+                        <div className="ordered-details-header">
+                            <div>
+                                <p className="module-page-label">Purchased order</p>
+                                <h2 id="ordered-details-title">Order details</h2>
+                                <p>{selectedOrder.email}</p>
+                                {selectedOrder.address && <p className="ordered-details-address">{selectedOrder.address}</p>}
+                            </div>
+                            <button type="button" className="checkout-close" onClick={() => setSelectedOrder(null)} aria-label="Close order details">×</button>
+                        </div>
+                        <div className="ordered-details-items">
+                            {selectedOrder.items.map((item, index) => (
+                                <div className="ordered-details-item" key={`${item.id}-${index}`}>
+                                    <span>{item.name}</span>
+                                    <span>{item.price}</span>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="ordered-details-summary">
+                            <span>{selectedOrder.status || 'Order confirmed'}</span>
+                            <strong>Total: ${selectedOrder.items.reduce((total, item) => total + Number(item.price.replace('$', '')), 0).toFixed(2)}</strong>
+                        </div>
+                    </section>
                 </div>
             )}
         </div>

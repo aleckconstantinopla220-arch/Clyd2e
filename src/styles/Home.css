@@ -281,6 +281,40 @@ button {
     box-shadow: 0 4px 0 currentColor;
 }
 
+.shipping-icon {
+    position: relative;
+    display: block;
+    width: 20px;
+    height: 11px;
+    margin-bottom: 4px;
+    border: 1.5px solid currentColor;
+    border-radius: 2px;
+}
+
+.shipping-icon::before {
+    content: '';
+    position: absolute;
+    top: 3px;
+    right: -6px;
+    width: 6px;
+    height: 9px;
+    border: 1.5px solid currentColor;
+    border-left: none;
+    border-radius: 0 2px 2px 0;
+}
+
+.shipping-icon::after {
+    content: '';
+    position: absolute;
+    bottom: -6px;
+    left: 3px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 10px 0 0 currentColor;
+}
+
 .logout-link {
     background: none;
     border: none;
