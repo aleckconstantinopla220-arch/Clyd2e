@@ -28,18 +28,24 @@ set this environment variable:
 ORDERS_DB_PATH=/var/data/orders.json
 ```
 
-### Stripe payments
+### PayMongo payments
 
-Purchases use Stripe-hosted Checkout. Configure the backend with the test secret key
-through an environment variable; never put the `sk_` key in frontend code or commit it:
+Purchases use a custom PayMongo Payment Intent page. Configure the backend with the
+PayMongo test secret key and expose only the publishable key to the frontend; never
+put the secret key in frontend code or commit it:
 
 ```bash
-STRIPE_SECRET_KEY=sk_test_...
+PAYMONGO_SECRET_KEY=sk_test_...
+VITE_PAYMONGO_PUBLIC_KEY=pk_test_...
+PAYMONGO_WEBHOOK_SECRET=your_webhook_secret
 FRONTEND_URL=http://localhost:5173
 ```
 
-The publishable key is not required for Stripe-hosted Checkout. Use Stripe test card
-`4242 4242 4242 4242`, any future expiry date, and any CVC while testing.
+PayMongo test mode supports the payment methods enabled in your PayMongo account,
+including cards, GCash, GrabPay, and Maya. The custom payment page uses GCash, Maya,
+and GrabPay Payment Intents. Register `POST /api/webhooks/paymongo` in PayMongo and
+copy that endpoint's webhook secret into `PAYMONGO_WEBHOOK_SECRET`. The webhook event
+`payment.paid` is the server-side source of truth and is idempotent.
 
 ### Option 1: Run Both Frontend & Backend Together (Recommended)
 

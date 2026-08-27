@@ -6,6 +6,7 @@ import Shipping from './components/Shipping'
 import AdminOrders from './components/AdminOrders'
 import SitePage from './components/SitePage'
 import AddProduct from './components/AddProduct'
+import Payment from './components/Payment'
 import './App.css'
 
 function App() {
@@ -15,6 +16,7 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/store" element={<Store />} />
         <Route path="/cart" element={<Cart />} />
+        <Route path="/payment" element={<Payment />} />
         <Route path="/webtoon" element={<SitePage title="Webtoon" />} />
         <Route path="/pinya" element={<SitePage title="Pinya" />} />
         <Route path="/patreon" element={<SitePage title="Patreon" />} />

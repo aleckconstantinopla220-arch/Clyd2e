@@ -1,10 +1,10 @@
 import 'dotenv/config'
+import crypto from 'crypto'
 import express from 'express'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import cors from 'cors'
-import Stripe from 'stripe'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -15,10 +15,39 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'aleckconstantinopla220@gmail.com
 const USERS_DB = path.join(__dirname, 'users.json')
 const PRODUCTS_DB = path.join(__dirname, 'products.json')
 const ORDERS_DB = process.env.ORDERS_DB_PATH || path.join(__dirname, 'orders.json')
-const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null
+const payMongoSecretKey = process.env.PAYMONGO_SECRET_KEY
+const payMongoWebhookSecret = process.env.PAYMONGO_WEBHOOK_SECRET
+const PAYMONGO_CREATE_URL = 'https://api.paymongo.com/v2/checkout_sessions'
+const PAYMONGO_RETRIEVE_URL = 'https://api.paymongo.com/v1/checkout_sessions'
 
 // Middleware
 app.use(cors())
+app.post('/api/webhooks/paymongo', express.raw({ type: 'application/json' }), async (req, res) => {
+    try {
+        if (!payMongoWebhookSecret) return res.status(503).json({ error: 'PayMongo webhook secret is not configured' })
+        const signatureParts = Object.fromEntries(String(req.headers['paymongo-signature'] || '').split(',').map(part => part.split('=')))
+        const timestamp = signatureParts.t
+        const receivedSignature = signatureParts.te || signatureParts.li
+        const signedPayload = `${timestamp}.${req.body.toString('utf8')}`
+        const expectedSignature = crypto.createHmac('sha256', payMongoWebhookSecret).update(signedPayload).digest('hex')
+        if (!timestamp || !receivedSignature || receivedSignature.length !== expectedSignature.length || !crypto.timingSafeEqual(Buffer.from(receivedSignature), Buffer.from(expectedSignature))) {
+            return res.status(401).json({ error: 'Invalid PayMongo webhook signature' })
+        }
+
+        const payload = JSON.parse(req.body.toString('utf8'))
+        const event = payload.data?.attributes || payload.data || payload
+        const eventType = event.type || event.attributes?.type
+        const resource = event.data || event.attributes?.data
+        const intentId = resource?.attributes?.payment_intent_id || (resource?.type === 'payment_intent' ? resource.id : null)
+        if (eventType === 'payment.paid' || eventType === 'checkout_session.payment.paid') {
+            if (intentId) await fulfillPaymentIntent(intentId)
+        }
+        return res.status(200).json({ received: true })
+    } catch (error) {
+        console.error('Failed to process PayMongo webhook:', error)
+        return res.status(400).json({ error: 'Invalid PayMongo webhook payload' })
+    }
+})
 app.use(express.json({ limit: '10mb' }))
 
 if (process.env.NODE_ENV === 'production') {
@@ -69,6 +98,39 @@ const isAuthorizedAdmin = (users, adminId, adminEmail) => users.some(user =>
     isAdminUser(user) && ((adminId && user.id === adminId) || (adminEmail && user.email.toLowerCase() === adminEmail.toLowerCase()))
 )
 const priceInSmallestUnit = value => Math.round((Number(String(value).replace(/[^0-9.-]/g, '')) || 0) * 100)
+const payMongoHeaders = () => ({
+    Authorization: `Basic ${Buffer.from(`${payMongoSecretKey}:`).toString('base64')}`,
+    'Content-Type': 'application/json'
+})
+
+const fulfillPaymentIntent = async intentId => {
+    if (!payMongoSecretKey) throw new Error('PayMongo is not configured on the server')
+    const response = await fetch(`https://api.paymongo.com/v1/payment_intents/${encodeURIComponent(intentId)}`, { headers: payMongoHeaders() })
+    const result = await response.json().catch(() => ({}))
+    if (!response.ok) throw new Error(result.errors?.[0]?.detail || 'Unable to verify payment')
+    const intent = result.data
+    if (intent.attributes.status !== 'succeeded') return null
+
+    const orders = readOrders()
+    const existingOrder = orders.find(order => order.paymentIntentId === intent.id)
+    if (existingOrder) return existingOrder
+    const metadata = intent.attributes.metadata || {}
+    const productIds = String(metadata.productIds || '').split(',').filter(Boolean).map(Number)
+    const products = readProducts()
+    const items = productIds.map(id => products.find(product => product.id === id)).filter(Boolean)
+    if (items.length !== productIds.length || items.length === 0) throw new Error('Unable to restore purchased products')
+
+    const order = {
+        id: Date.now().toString(), userId: null, username: metadata.customerName,
+        email: metadata.customerEmail, address: metadata.customerAddress, items,
+        total: items.reduce((sum, item) => sum + priceInSmallestUnit(item.price), 0) / 100,
+        status: 'Purchased', paymentStatus: 'Paid', paymentIntentId: intent.id,
+        createdAt: new Date().toISOString()
+    }
+    orders.push(order)
+    writeOrders(orders)
+    return order
+}
 
 // Register endpoint
 app.post('/api/register', (req, res) => {
@@ -157,6 +219,59 @@ app.get('/api/products', (req, res) => {
     }
 })
 
+// Create a Payment Intent for the custom payment page.
+app.post('/api/payment-intents', async (req, res) => {
+    try {
+        const { items, customer = {} } = req.body
+        const customerEmail = String(customer.email || '').trim().toLowerCase()
+        const customerName = String(customer.name || '').trim()
+        const customerAddress = String(customer.address || '').trim()
+        if (!payMongoSecretKey || !Array.isArray(items) || items.length === 0 || !customerName || !customerEmail || !customerAddress) {
+            return res.status(400).json({ error: 'PayMongo, items, name, email and address are required' })
+        }
+
+        const products = readProducts()
+        const paymentItems = items.map(item => products.find(product => product.id === Number(item.id))).filter(Boolean)
+        if (paymentItems.length !== items.length || paymentItems.some(item => priceInSmallestUnit(item.price) < 100)) {
+            return res.status(400).json({ error: 'One or more products are unavailable or below the PHP 1.00 minimum' })
+        }
+
+        const response = await fetch('https://api.paymongo.com/v1/payment_intents', {
+            method: 'POST',
+            headers: payMongoHeaders(),
+            body: JSON.stringify({
+                data: {
+                    attributes: {
+                        amount: paymentItems.reduce((sum, item) => sum + priceInSmallestUnit(item.price), 0),
+                        currency: 'PHP',
+                        payment_method_allowed: ['gcash', 'paymaya', 'grab_pay'],
+                        description: `Clyd2e order for ${customerName}`,
+                        metadata: { customerName, customerEmail, customerAddress, productIds: paymentItems.map(item => item.id).join(',') }
+                    }
+                }
+            })
+        })
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) return res.status(response.status === 401 ? 503 : 500).json({ error: result.errors?.[0]?.detail || 'Unable to start PayMongo payment' })
+        return res.status(201).json({ id: result.data.id, clientKey: result.data.attributes.client_key })
+    } catch (error) {
+        console.error('Failed to create PayMongo Payment Intent:', error)
+        return res.status(500).json({ error: 'Unable to start payment' })
+    }
+})
+
+// Fulfill a custom payment only after PayMongo reports success.
+app.post('/api/payment-intents/:id/complete', async (req, res) => {
+    try {
+        const order = await fulfillPaymentIntent(req.params.id)
+        if (!order) return res.status(402).json({ error: 'Payment has not succeeded' })
+        return res.status(200).json({ order })
+    } catch (error) {
+        console.error('Failed to complete PayMongo Payment Intent:', error)
+        return res.status(500).json({ error: error.message || 'Failed to complete paid order' })
+    }
+})
+
 // Start payment before an order is created.
 app.post('/api/checkout-session', async (req, res) => {
     try {
@@ -170,8 +285,8 @@ app.post('/api/checkout-session', async (req, res) => {
             return res.status(400).json({ error: 'Items, name, email and address are required' })
         }
 
-        if (!stripe) {
-            return res.status(503).json({ error: 'Stripe is not configured on the server' })
+        if (!payMongoSecretKey) {
+            return res.status(503).json({ error: 'PayMongo is not configured on the server' })
         }
 
         const products = readProducts()
@@ -181,47 +296,60 @@ app.post('/api/checkout-session', async (req, res) => {
         }
 
         const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
-        const session = await stripe.checkout.sessions.create({
-            mode: 'payment',
-            customer_email: customerEmail,
-            line_items: checkoutItems.map(item => ({
-                price_data: {
-                    currency: 'php',
-                    product_data: { name: item.name },
-                    unit_amount: priceInSmallestUnit(item.price)
-                },
-                quantity: 1
-            })),
-            metadata: {
-                customerName,
-                customerEmail,
-                customerAddress,
-                productIds: checkoutItems.map(item => item.id).join(',')
-            },
-            success_url: `${frontendUrl}/cart?payment=success&session_id={CHECKOUT_SESSION_ID}`,
-            cancel_url: `${frontendUrl}/cart?payment=cancelled`
+        const response = await fetch(PAYMONGO_CREATE_URL, {
+            method: 'POST',
+            headers: payMongoHeaders(),
+            body: JSON.stringify({
+                data: {
+                    attributes: {
+                        line_items: checkoutItems.map(item => ({
+                            currency: 'PHP',
+                            amount: priceInSmallestUnit(item.price),
+                            name: item.name,
+                            quantity: 1
+                        })),
+                        payment_method_types: ['card', 'gcash', 'grab_pay', 'paymaya'],
+                        description: `Clyd2e order for ${customerName}`,
+                        success_url: `${frontendUrl}/cart?payment=success`,
+                        cancel_url: `${frontendUrl}/cart?payment=cancelled`,
+                        metadata: { customerName, customerEmail, customerAddress, productIds: checkoutItems.map(item => item.id).join(',') }
+                    }
+                }
+            })
         })
-
-        return res.status(201).json({ url: session.url })
-    } catch (error) {
-        console.error('Failed to create Stripe checkout session:', error)
-        if (error.type === 'StripeAuthenticationError') {
-            return res.status(503).json({ error: 'Stripe rejected the server key. Replace STRIPE_SECRET_KEY with an active test secret key.' })
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) {
+            const errorMessage = result.errors?.[0]?.detail || 'Unable to start PayMongo payment'
+            return res.status(response.status === 401 ? 503 : 500).json({ error: errorMessage })
         }
+
+        return res.status(201).json({ url: result.data.attributes.checkout_url, sessionId: result.data.id })
+    } catch (error) {
+        console.error('Failed to create PayMongo checkout session:', error)
         return res.status(500).json({ error: 'Unable to start payment' })
     }
 })
 
-// Create the order only after Stripe confirms payment.
+// Create the order only after PayMongo confirms payment.
 app.post('/api/orders/complete', async (req, res) => {
     try {
         const { sessionId } = req.body
-        if (!stripe || !sessionId) {
-            return res.status(400).json({ error: 'A paid checkout session is required' })
+        if (!payMongoSecretKey || !sessionId) {
+            return res.status(400).json({ error: 'A paid PayMongo checkout session is required' })
         }
 
-        const session = await stripe.checkout.sessions.retrieve(sessionId)
-        if (session.payment_status !== 'paid') {
+        const response = await fetch(`${PAYMONGO_RETRIEVE_URL}/${encodeURIComponent(sessionId)}`, {
+            headers: payMongoHeaders()
+        })
+        const result = await response.json().catch(() => ({}))
+        if (!response.ok) {
+            return res.status(response.status === 401 ? 503 : response.status).json({ error: result.errors?.[0]?.detail || 'Unable to verify PayMongo payment' })
+        }
+
+        const session = result.data
+        const attributes = session.attributes || {}
+        const isPaid = attributes.status === 'completed' || attributes.payments?.some(payment => payment.attributes?.status === 'paid')
+        if (!isPaid) {
             return res.status(402).json({ error: 'Payment has not been completed' })
         }
 
@@ -231,7 +359,8 @@ app.post('/api/orders/complete', async (req, res) => {
             return res.status(200).json({ message: 'Order already created', order: existingOrder })
         }
 
-        const productIds = String(session.metadata?.productIds || '').split(',').filter(Boolean).map(Number)
+        const metadata = attributes.metadata || {}
+        const productIds = String(metadata.productIds || '').split(',').filter(Boolean).map(Number)
         const products = readProducts()
         const items = productIds.map(id => products.find(product => product.id === id)).filter(Boolean)
         if (items.length !== productIds.length || items.length === 0) {
@@ -241,12 +370,13 @@ app.post('/api/orders/complete', async (req, res) => {
         const order = {
             id: Date.now().toString(),
             userId: null,
-            username: session.metadata.customerName,
-            email: session.metadata.customerEmail,
-            address: session.metadata.customerAddress,
+            username: metadata.customerName,
+            email: metadata.customerEmail,
+            address: metadata.customerAddress,
             items,
             total: items.reduce((sum, item) => sum + priceInSmallestUnit(item.price), 0) / 100,
-            status: 'Order confirmed',
+            status: 'Purchased',
+            paymentStatus: 'Paid',
             createdAt: new Date().toISOString(),
             paymentSessionId: session.id
         }
@@ -256,7 +386,7 @@ app.post('/api/orders/complete', async (req, res) => {
 
         res.status(201).json({ message: 'Order created successfully', order })
     } catch (error) {
-        console.error('Failed to complete paid order:', error)
+        console.error('Failed to complete paid PayMongo order:', error)
         res.status(500).json({ error: 'Failed to complete paid order' })
     }
 })

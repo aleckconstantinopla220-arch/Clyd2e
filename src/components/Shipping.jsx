@@ -122,7 +122,7 @@ export default function Shipping() {
                                             <p className="product-category">Order {order.orderId || order.id}</p>
                                             <p className="shipping-order-email">{order.email}</p>
                                         </div>
-                                        <span className="shipping-status">{order.status || 'Order confirmed'}</span>
+                                        <span className="shipping-status">{order.status || 'Purchased'}</span>
                                     </div>
                                     <div className="shipping-order-footer">
                                         <span>{order.items.length} item{order.items.length === 1 ? '' : 's'}</span>
@@ -162,7 +162,7 @@ export default function Shipping() {
                             ))}
                         </div>
                         <div className="shipping-modal-summary">
-                            <span>{selectedOrder.status || 'Order confirmed'}</span>
+                            <span>{selectedOrder.status || 'Purchased'}</span>
                             <strong>Total: {formatPrice(selectedOrder.items.reduce((total, item) => total + parsePrice(item.price), 0))}</strong>
                         </div>
                         <div className={`shipping-status-bar ${isOrderCompleted(selectedOrder) ? 'completed' : 'ongoing'}`} aria-label={isOrderCompleted(selectedOrder) ? 'Order completed' : 'Order ongoing'}>
