@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
-import { ADMIN_EMAIL, API_BASE_URL } from '../config'
+import { ADMIN_EMAIL, API_BASE_URL, formatPrice, parsePrice } from '../config'
 import '../styles/Home.css'
 import '../styles/Cart.css'
 
@@ -32,7 +32,7 @@ export default function Cart() {
         })
     }
 
-    const cartTotal = cart.reduce((total, product) => total + Number(product.price.replace('$', '')), 0)
+    const cartTotal = cart.reduce((total, product) => total + parsePrice(product.price), 0)
     const orderedGroups = orderedItems.reduce((groups, item) => {
         const orderKey = item.orderId || item.id
         if (!groups[orderKey]) {
@@ -108,9 +108,6 @@ export default function Cart() {
                             <h1 className="module-page-title">My Cart</h1>
                             <p className="module-page-description">Items you have selected from the store.</p>
                         </div>
-                        <button type="button" className="continue-shopping-button" onClick={() => navigate('/store')}>
-                            Continue shopping
-                        </button>
                     </header>
 
                     {cart.length === 0 ? (
@@ -136,7 +133,7 @@ export default function Cart() {
                                                 </div>
                                                 <div className="ordered-item-footer">
                                                     <span>{order.email}</span>
-                                                    <strong>Total: ${order.items.reduce((total, item) => total + Number(item.price.replace('$', '')), 0).toFixed(2)}</strong>
+                                                    <strong>Total: {formatPrice(order.items.reduce((total, item) => total + parsePrice(item.price), 0))}</strong>
                                                 </div>
                                             </article>
                                         ))}
@@ -154,7 +151,7 @@ export default function Cart() {
                                             <p className="product-category">{product.category}</p>
                                             <h2 className="product-name">{product.name}</h2>
                                         </div>
-                                        <span className="product-price">{product.price}</span>
+                                        <span className="product-price">{formatPrice(product.price)}</span>
                                         <button type="button" className="remove-item-button" onClick={() => removeItem(index)}>
                                             Remove
                                         </button>
@@ -162,7 +159,7 @@ export default function Cart() {
                                 ))}
                             </section>
                             <footer className="cart-summary">
-                                <span>Total: ${cartTotal.toFixed(2)}</span>
+                                <span>Total: {formatPrice(cartTotal)}</span>
                                 {purchaseMessage && <p className="purchase-message" role="alert">{purchaseMessage}</p>}
                                 <button type="button" className="purchase-button" onClick={() => setIsCheckoutOpen(true)} disabled={isPurchasing}>
                                     Purchase
@@ -170,6 +167,9 @@ export default function Cart() {
                             </footer>
                         </>
                     )}
+                    <button type="button" className="bottom-home-button" onClick={() => navigate('/store')}>
+                        Back to Store
+                    </button>
                 </main>
             </div>
             {isCheckoutOpen && (
@@ -222,7 +222,7 @@ export default function Cart() {
                         </div>
                         <div className="ordered-details-summary">
                             <span>{selectedOrder.status || 'Order confirmed'}</span>
-                            <strong>Total: ${selectedOrder.items.reduce((total, item) => total + Number(item.price.replace('$', '')), 0).toFixed(2)}</strong>
+                            <strong>Total: {formatPrice(selectedOrder.items.reduce((total, item) => total + parsePrice(item.price), 0))}</strong>
                         </div>
                     </section>
                 </div>

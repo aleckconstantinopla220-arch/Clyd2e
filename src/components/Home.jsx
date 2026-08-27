@@ -61,7 +61,7 @@ export default function Home() {
 
     const tourDates = []
 
-    const categories = ['ALL', 'APPAREL', 'MUSIC', 'PRINT', 'MISC']
+    const categories = ['ALL', 'ZINE', 'PHOTOCARD', 'INSTAX MINI', 'ACCESSORIES', 'OTHER']
 
     const filteredProducts = selectedCategory === 'ALL'
         ? products
@@ -110,7 +110,7 @@ export default function Home() {
                             <h2 className="hero-title">Very <span className="hero-accent">Stinky</span></h2>
                             <p className="hero-description">Mookies is stinky.<br />June and Kyle Stinkers as well.</p>
                             <div className="hero-buttons">
-                                <a href="#shop" className="btn btn-primary">Shop the drop</a>
+                                <a href="/store" className="btn btn-primary">Store</a>
                                 <a href="#tour" className="btn btn-secondary">Tour dates</a>
                             </div>
                         </div>

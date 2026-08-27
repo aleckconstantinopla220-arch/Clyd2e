@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
 import products from '../../products.json'
-import { ADMIN_EMAIL } from '../config'
+import { ADMIN_EMAIL, formatPrice } from '../config'
 import '../styles/Home.css'
 import '../styles/Store.css'
 
@@ -19,7 +19,7 @@ export default function Store() {
         window.scrollTo({ top: 0, behavior: 'smooth' })
     }, [])
 
-    const categories = ['ALL', 'APPAREL', 'MUSIC', 'PRINT', 'MISC']
+    const categories = ['ALL', 'ZINE', 'PHOTOCARD', 'INSTAX MINI', 'ACCESSORIES', 'OTHER']
 
     const handleLogout = () => {
         localStorage.removeItem('user')
@@ -91,17 +91,20 @@ export default function Store() {
                             {visibleProducts.map(product => (
                                 <article className="product-card" key={product.id}>
                                     <div className="product-image" aria-label={`${product.name} image placeholder`}>
-                                        <span>{product.image}</span>
+                                        {product.image?.startsWith('data:image') || product.image?.startsWith('http') || product.image?.startsWith('/')
+                                            ? <img src={product.image} alt={`${product.name} product`} />
+                                            : <span>{product.image}</span>}
                                     </div>
                                     <div className="product-card-details">
                                         <div>
                                             <p className="product-category">{product.category}</p>
                                             <h2 className="product-name">{product.name}</h2>
+                                            {product.preOrderOnly && <p className="preorder-label">Pre-order only</p>}
                                         </div>
                                         <div className="product-card-footer">
-                                            <span className="product-price">{product.price}</span>
-                                            <button type="button" className="buy-button" onClick={() => handleBuy(product)}>
-                                                Buy
+                                            <span className="product-price">{formatPrice(product.price)}</span>
+                                            <button type="button" className="buy-button" onClick={() => handleBuy(product)} disabled={product.inStock === false}>
+                                                {product.inStock === false ? 'Out of stock' : 'Buy'}
                                             </button>
                                         </div>
                                     </div>

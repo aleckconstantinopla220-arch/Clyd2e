@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
-import { ADMIN_EMAIL, API_BASE_URL } from '../config'
+import { ADMIN_EMAIL, API_BASE_URL, formatPrice } from '../config'
 import '../styles/Home.css'
 import '../styles/AdminOrders.css'
 
@@ -120,7 +120,7 @@ export default function AdminOrders() {
                                 </div>
                                 <div className="admin-order-card-footer">
                                     <span>{order.items.length} item{order.items.length === 1 ? '' : 's'}</span>
-                                    <strong>Total: ${Number(order.total).toFixed(2)}</strong>
+                                    <strong>Total: {formatPrice(order.total)}</strong>
                                 </div>
                                 {order.address && <p className="order-address">Ship to: {order.address}</p>}
                                 {order.status === 'Order completed' ? (
@@ -172,13 +172,13 @@ export default function AdminOrders() {
                             {selectedOrder.items.map((item, index) => (
                                 <div className="admin-order-product" key={`${item.id}-${index}`}>
                                     <span>{item.name}</span>
-                                    <span>{item.price}</span>
+                                    <span>{formatPrice(item.price)}</span>
                                 </div>
                             ))}
                         </div>
                         <div className="order-modal-summary">
                             <span>{selectedOrder.status}</span>
-                            <strong>Total: ${Number(selectedOrder.total).toFixed(2)}</strong>
+                            <strong>Total: {formatPrice(selectedOrder.total)}</strong>
                         </div>
                     </section>
                 </div>
@@ -191,7 +191,7 @@ export default function AdminOrders() {
                         <p className="order-confirmation-details">
                             {orderToRemove.username}{orderToRemove.email ? ` · ${orderToRemove.email}` : ''}
                         </p>
-                        <p className="order-confirmation-details">{orderToRemove.items.length} item{orderToRemove.items.length === 1 ? '' : 's'} · ${Number(orderToRemove.total).toFixed(2)}</p>
+                        <p className="order-confirmation-details">{orderToRemove.items.length} item{orderToRemove.items.length === 1 ? '' : 's'} · {formatPrice(orderToRemove.total)}</p>
                         <div className="order-confirmation-items" aria-label="Items in this order">
                             {orderToRemove.items.map((item, index) => (
                                 <div className="order-confirmation-item" key={`${item.id}-${index}`}>

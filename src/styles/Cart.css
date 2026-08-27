@@ -199,6 +199,22 @@
     font-weight: 400;
 }
 
+.bottom-home-button {
+    display: block;
+    margin-top: 40px;
+    padding: 13px 18px;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    background: var(--ink);
+    color: var(--surface);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.bottom-home-button:hover {
+    opacity: 0.75;
+}
+
 .purchase-button {
     padding: 13px 24px;
     border: 1px solid var(--ink);

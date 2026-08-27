@@ -16,7 +16,7 @@ const ORDERS_DB = process.env.ORDERS_DB_PATH || path.join(__dirname, 'orders.jso
 
 // Middleware
 app.use(cors())
-app.use(express.json())
+app.use(express.json({ limit: '10mb' }))
 
 if (process.env.NODE_ENV === 'production') {
     app.use(express.static(path.join(__dirname, 'dist')))
@@ -173,7 +173,7 @@ app.post('/api/orders', (req, res) => {
             email: customerEmail,
             address: customerAddress,
             items,
-            total: items.reduce((sum, item) => sum + Number(String(item.price).replace('$', '')), 0),
+            total: items.reduce((sum, item) => sum + (Number(String(item.price).replace(/[^0-9.-]/g, '')) || 0), 0),
             status: 'Order confirmed',
             createdAt: new Date().toISOString()
         }
@@ -279,7 +279,7 @@ app.post('/api/orders/:id/remove', (req, res) => {
 // Add new product (admin only)
 app.post('/api/products', (req, res) => {
     try {
-        const { name, category, price, image, adminId } = req.body
+        const { name, category, price, image, preOrderOnly, adminId } = req.body
 
         if (!name || !category || !price || !image || !adminId) {
             return res.status(400).json({ error: 'All fields are required' })
@@ -298,7 +298,9 @@ app.post('/api/products', (req, res) => {
             name,
             category,
             price,
-            image
+            image,
+            inStock: true,
+            preOrderOnly: preOrderOnly === true
         }
 
         products.push(newProduct)
@@ -317,7 +319,7 @@ app.post('/api/products', (req, res) => {
 app.put('/api/products/:id', (req, res) => {
     try {
         const { id } = req.params
-        const { name, category, price, image, adminId } = req.body
+        const { name, category, price, image, inStock, preOrderOnly, adminId } = req.body
 
         if (!adminId) {
             return res.status(401).json({ error: 'Unauthorized: Admin access required' })
@@ -342,7 +344,9 @@ app.put('/api/products/:id', (req, res) => {
             name: name || products[productIndex].name,
             category: category || products[productIndex].category,
             price: price || products[productIndex].price,
-            image: image || products[productIndex].image
+            image: image || products[productIndex].image,
+            inStock: typeof inStock === 'boolean' ? inStock : products[productIndex].inStock !== false,
+            preOrderOnly: typeof preOrderOnly === 'boolean' ? preOrderOnly : products[productIndex].preOrderOnly === true
         }
 
         writeProducts(products)

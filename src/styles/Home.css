@@ -281,6 +281,30 @@ button {
     box-shadow: 0 4px 0 currentColor;
 }
 
+.add-product-icon {
+    position: relative;
+    display: block;
+    width: 18px;
+    height: 18px;
+    border: 1.5px solid currentColor;
+    border-radius: 50%;
+}
+
+.add-product-icon::before,
+.add-product-icon::after {
+    content: '';
+    position: absolute;
+    top: 7px;
+    left: 4px;
+    width: 8px;
+    height: 1.5px;
+    background: currentColor;
+}
+
+.add-product-icon::after {
+    transform: rotate(90deg);
+}
+
 .shipping-icon {
     position: relative;
     display: block;

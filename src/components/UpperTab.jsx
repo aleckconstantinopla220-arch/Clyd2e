@@ -35,6 +35,10 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
         navigate('/admin/orders')
     }
 
+    const handleAddProductClick = () => {
+        navigate('/admin/products/new')
+    }
+
     const handleRoleSwitch = () => {
         setIsAccountMenuOpen(false)
         if (isAdmin) {
@@ -84,10 +88,15 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
                         <span className="shipping-icon" aria-hidden="true" />
                     </button>
                     {isAdmin && (
-                        <button className="nav-icon-button orders-button" onClick={handleOrdersClick} aria-label={`Admin orders with ${adminOrderCount} orders`} title="Admin orders">
-                            <span className="orders-icon" aria-hidden="true" />
-                            <span className="cart-count">{adminOrderCount}</span>
-                        </button>
+                        <>
+                            <button className="nav-icon-button add-product-button" onClick={handleAddProductClick} aria-label="Add product" title="Add product">
+                                <span className="add-product-icon" aria-hidden="true" />
+                            </button>
+                            <button className="nav-icon-button orders-button" onClick={handleOrdersClick} aria-label={`Admin orders with ${adminOrderCount} orders`} title="Admin orders">
+                                <span className="orders-icon" aria-hidden="true" />
+                                <span className="cart-count">{adminOrderCount}</span>
+                            </button>
+                        </>
                     )}
                     <div className="account-menu">
                         <button

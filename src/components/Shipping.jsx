@@ -2,7 +2,7 @@ import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
-import { ADMIN_EMAIL, API_BASE_URL } from '../config'
+import { ADMIN_EMAIL, API_BASE_URL, formatPrice, parsePrice } from '../config'
 import '../styles/Home.css'
 import '../styles/Cart.css'
 import '../styles/Shipping.css'
@@ -104,9 +104,6 @@ export default function Shipping() {
                             <h1 className="module-page-title">Shipping</h1>
                             <p className="module-page-description">Your purchased items and delivery status.</p>
                         </div>
-                        <button type="button" className="continue-shopping-button" onClick={() => navigate('/store')}>
-                            Continue shopping
-                        </button>
                     </header>
 
                     {orders.length === 0 ? (
@@ -129,7 +126,7 @@ export default function Shipping() {
                                     </div>
                                     <div className="shipping-order-footer">
                                         <span>{order.items.length} item{order.items.length === 1 ? '' : 's'}</span>
-                                        <strong>Total: ${order.items.reduce((total, item) => total + Number(item.price.replace('$', '')), 0).toFixed(2)}</strong>
+                                        <strong>Total: {formatPrice(order.items.reduce((total, item) => total + parsePrice(item.price), 0))}</strong>
                                     </div>
                                     <div className={`shipping-status-bar ${isOrderCompleted(order) ? 'completed' : 'ongoing'}`} aria-label={isOrderCompleted(order) ? 'Order completed' : 'Order ongoing'}>
                                         <span className="shipping-status-bar-fill" />
@@ -139,6 +136,9 @@ export default function Shipping() {
                             ))}
                         </section>
                     )}
+                    <button type="button" className="bottom-home-button" onClick={() => navigate('/store')}>
+                        Back to Store
+                    </button>
                 </main>
             </div>
             {selectedOrder && (
@@ -163,7 +163,7 @@ export default function Shipping() {
                         </div>
                         <div className="shipping-modal-summary">
                             <span>{selectedOrder.status || 'Order confirmed'}</span>
-                            <strong>Total: ${selectedOrder.items.reduce((total, item) => total + Number(item.price.replace('$', '')), 0).toFixed(2)}</strong>
+                            <strong>Total: {formatPrice(selectedOrder.items.reduce((total, item) => total + parsePrice(item.price), 0))}</strong>
                         </div>
                         <div className={`shipping-status-bar ${isOrderCompleted(selectedOrder) ? 'completed' : 'ongoing'}`} aria-label={isOrderCompleted(selectedOrder) ? 'Order completed' : 'Order ongoing'}>
                             <span className="shipping-status-bar-fill" />

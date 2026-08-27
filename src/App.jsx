@@ -5,6 +5,7 @@ import Cart from './components/Cart'
 import Shipping from './components/Shipping'
 import AdminOrders from './components/AdminOrders'
 import SitePage from './components/SitePage'
+import AddProduct from './components/AddProduct'
 import './App.css'
 
 function App() {
@@ -19,6 +20,7 @@ function App() {
         <Route path="/patreon" element={<SitePage title="Patreon" />} />
         <Route path="/shipping" element={<Shipping />} />
         <Route path="/admin/orders" element={<AdminOrders />} />
+        <Route path="/admin/products/new" element={<AddProduct />} />
         <Route path="/" element={<Navigate to="/home" replace />} />
         <Route path="*" element={<Navigate to="/home" replace />} />
       </Routes>
