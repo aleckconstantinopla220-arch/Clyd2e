@@ -80,6 +80,9 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
                 </button>
                 <h1 className="store-logo">CLYD2E'S<span> STORE</span></h1>
                 <div className="nav-right">
+                    <button className="nav-icon-button store-button" onClick={() => navigate('/store')} aria-label="Store" title="Store">
+                        <span className="store-icon" aria-hidden="true" />
+                    </button>
                     <button className="nav-icon-button cart-button" onClick={handleCartClick} aria-label={`Shopping cart with ${cartCount} items`} title="Shopping cart">
                         <span className="cart-icon" aria-hidden="true" />
                         {cartCount > 0 && <span className="cart-count">{cartCount}</span>}

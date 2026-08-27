@@ -1,8 +1,10 @@
+import 'dotenv/config'
 import express from 'express'
 import fs from 'fs'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import cors from 'cors'
+import Stripe from 'stripe'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -13,6 +15,7 @@ const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'aleckconstantinopla220@gmail.com
 const USERS_DB = path.join(__dirname, 'users.json')
 const PRODUCTS_DB = path.join(__dirname, 'products.json')
 const ORDERS_DB = process.env.ORDERS_DB_PATH || path.join(__dirname, 'orders.json')
+const stripe = process.env.STRIPE_SECRET_KEY ? new Stripe(process.env.STRIPE_SECRET_KEY) : null
 
 // Middleware
 app.use(cors())
@@ -65,6 +68,7 @@ const isAdminUser = user => user?.email?.toLowerCase() === ADMIN_EMAIL.toLowerCa
 const isAuthorizedAdmin = (users, adminId, adminEmail) => users.some(user =>
     isAdminUser(user) && ((adminId && user.id === adminId) || (adminEmail && user.email.toLowerCase() === adminEmail.toLowerCase()))
 )
+const priceInSmallestUnit = value => Math.round((Number(String(value).replace(/[^0-9.-]/g, '')) || 0) * 100)
 
 // Register endpoint
 app.post('/api/register', (req, res) => {
@@ -153,8 +157,8 @@ app.get('/api/products', (req, res) => {
     }
 })
 
-// Create an order for a signed-in user
-app.post('/api/orders', (req, res) => {
+// Start payment before an order is created.
+app.post('/api/checkout-session', async (req, res) => {
     try {
         const { items, customer = {} } = req.body
 
@@ -166,25 +170,91 @@ app.post('/api/orders', (req, res) => {
             return res.status(400).json({ error: 'Items, name, email and address are required' })
         }
 
-        const order = {
-            id: Date.now().toString(),
-            userId: null,
-            username: customerName,
-            email: customerEmail,
-            address: customerAddress,
-            items,
-            total: items.reduce((sum, item) => sum + (Number(String(item.price).replace(/[^0-9.-]/g, '')) || 0), 0),
-            status: 'Order confirmed',
-            createdAt: new Date().toISOString()
+        if (!stripe) {
+            return res.status(503).json({ error: 'Stripe is not configured on the server' })
+        }
+
+        const products = readProducts()
+        const checkoutItems = items.map(item => products.find(product => product.id === Number(item.id))).filter(Boolean)
+        if (checkoutItems.length !== items.length || checkoutItems.some(item => priceInSmallestUnit(item.price) <= 0)) {
+            return res.status(400).json({ error: 'One or more products are no longer available' })
+        }
+
+        const frontendUrl = process.env.FRONTEND_URL || 'http://localhost:5173'
+        const session = await stripe.checkout.sessions.create({
+            mode: 'payment',
+            customer_email: customerEmail,
+            line_items: checkoutItems.map(item => ({
+                price_data: {
+                    currency: 'php',
+                    product_data: { name: item.name },
+                    unit_amount: priceInSmallestUnit(item.price)
+                },
+                quantity: 1
+            })),
+            metadata: {
+                customerName,
+                customerEmail,
+                customerAddress,
+                productIds: checkoutItems.map(item => item.id).join(',')
+            },
+            success_url: `${frontendUrl}/cart?payment=success&session_id={CHECKOUT_SESSION_ID}`,
+            cancel_url: `${frontendUrl}/cart?payment=cancelled`
+        })
+
+        return res.status(201).json({ url: session.url })
+    } catch (error) {
+        console.error('Failed to create Stripe checkout session:', error)
+        return res.status(500).json({ error: 'Unable to start payment' })
+    }
+})
+
+// Create the order only after Stripe confirms payment.
+app.post('/api/orders/complete', async (req, res) => {
+    try {
+        const { sessionId } = req.body
+        if (!stripe || !sessionId) {
+            return res.status(400).json({ error: 'A paid checkout session is required' })
+        }
+
+        const session = await stripe.checkout.sessions.retrieve(sessionId)
+        if (session.payment_status !== 'paid') {
+            return res.status(402).json({ error: 'Payment has not been completed' })
         }
 
         const orders = readOrders()
+        const existingOrder = orders.find(order => order.paymentSessionId === session.id)
+        if (existingOrder) {
+            return res.status(200).json({ message: 'Order already created', order: existingOrder })
+        }
+
+        const productIds = String(session.metadata?.productIds || '').split(',').filter(Boolean).map(Number)
+        const products = readProducts()
+        const items = productIds.map(id => products.find(product => product.id === id)).filter(Boolean)
+        if (items.length !== productIds.length || items.length === 0) {
+            return res.status(400).json({ error: 'Unable to restore purchased products' })
+        }
+
+        const order = {
+            id: Date.now().toString(),
+            userId: null,
+            username: session.metadata.customerName,
+            email: session.metadata.customerEmail,
+            address: session.metadata.customerAddress,
+            items,
+            total: items.reduce((sum, item) => sum + priceInSmallestUnit(item.price), 0) / 100,
+            status: 'Order confirmed',
+            createdAt: new Date().toISOString(),
+            paymentSessionId: session.id
+        }
+
         orders.push(order)
         writeOrders(orders)
 
         res.status(201).json({ message: 'Order created successfully', order })
     } catch (error) {
-        res.status(500).json({ error: 'Failed to create order' })
+        console.error('Failed to complete paid order:', error)
+        res.status(500).json({ error: 'Failed to complete paid order' })
     }
 })
 

@@ -28,6 +28,19 @@ set this environment variable:
 ORDERS_DB_PATH=/var/data/orders.json
 ```
 
+### Stripe payments
+
+Purchases use Stripe-hosted Checkout. Configure the backend with the test secret key
+through an environment variable; never put the `sk_` key in frontend code or commit it:
+
+```bash
+STRIPE_SECRET_KEY=sk_test_...
+FRONTEND_URL=http://localhost:5173
+```
+
+The publishable key is not required for Stripe-hosted Checkout. Use Stripe test card
+`4242 4242 4242 4242`, any future expiry date, and any CVC while testing.
+
 ### Option 1: Run Both Frontend & Backend Together (Recommended)
 
 ```bash

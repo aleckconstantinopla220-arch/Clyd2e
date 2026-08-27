@@ -175,6 +175,39 @@ button {
     height: 18px;
 }
 
+.store-icon {
+    position: relative;
+    display: block;
+    width: 17px;
+    height: 15px;
+    margin-top: 3px;
+    border: 1.5px solid currentColor;
+    border-top: none;
+}
+
+.store-icon::before {
+    content: '';
+    position: absolute;
+    top: -5px;
+    left: -2px;
+    width: 17px;
+    height: 6px;
+    border: 1.5px solid currentColor;
+    background: var(--surface);
+    box-shadow: inset 0 -3px 0 currentColor;
+}
+
+.store-icon::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 5px;
+    width: 5px;
+    height: 8px;
+    border: 1.5px solid currentColor;
+    border-bottom: none;
+}
+
 .user-icon::before {
     content: '';
     position: absolute;

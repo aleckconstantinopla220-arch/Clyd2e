@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
@@ -18,6 +18,45 @@ export default function Cart() {
     const [customer, setCustomer] = useState({ name: '', email: '', address: '' })
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL
+
+    useEffect(() => {
+        const params = new URLSearchParams(window.location.search)
+        const sessionId = params.get('session_id')
+        if (params.get('payment') === 'cancelled') {
+            setPurchaseMessage('Payment was cancelled. Your cart is still here.')
+            window.history.replaceState({}, '', '/cart')
+            return
+        }
+        if (params.get('payment') !== 'success' || !sessionId) return
+
+        setIsPurchasing(true)
+        fetch(`${API_BASE_URL}/api/orders/complete`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionId })
+        })
+            .then(async response => {
+                const result = await response.json().catch(() => ({}))
+                if (!response.ok) throw new Error(result.error || 'Payment could not be confirmed')
+                return result.order
+            })
+            .then(order => {
+                const previousOrders = JSON.parse(localStorage.getItem('orders') || '[]')
+                const newItems = order.items.map(item => ({
+                    ...item, orderId: order.id, username: order.username, email: order.email,
+                    address: order.address, status: order.status, createdAt: order.createdAt
+                }))
+                const ordersWithoutCurrent = previousOrders.filter(item => item.orderId !== order.id)
+                localStorage.setItem('orders', JSON.stringify([...ordersWithoutCurrent, ...newItems]))
+                localStorage.removeItem('cart')
+                setCart([])
+                setPurchaseMessage('Purchase complete. Thank you for your order.')
+                window.history.replaceState({}, '', '/cart')
+                navigate('/shipping')
+            })
+            .catch(error => setPurchaseMessage(`Payment failed: ${error.message}`))
+            .finally(() => setIsPurchasing(false))
+    }, [navigate])
 
     const handleLogout = () => {
         localStorage.removeItem('user')
@@ -52,10 +91,10 @@ export default function Cart() {
         setIsPurchasing(true)
         setPurchaseMessage('')
         try {
-            const response = await fetch(`${API_BASE_URL}/api/orders`, {
+            const response = await fetch(`${API_BASE_URL}/api/checkout-session`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: cart, customer })
+                body: JSON.stringify({ items: cart.map(item => ({ id: item.id })), customer })
             })
 
             if (!response.ok) {
@@ -63,23 +102,8 @@ export default function Cart() {
                 throw new Error(result.error || 'Order could not be saved')
             }
 
-            const { order } = await response.json()
-            const previousOrders = JSON.parse(localStorage.getItem('orders') || '[]')
-            localStorage.setItem('orders', JSON.stringify([...previousOrders, ...order.items.map(item => ({
-                ...item,
-                orderId: order.id,
-                username: order.username,
-                email: order.email,
-                address: order.address,
-                status: order.status,
-                createdAt: order.createdAt
-            }))]))
-            localStorage.removeItem('cart')
-            setCart([])
-            setIsCheckoutOpen(false)
-            setCustomer({ name: '', email: '', address: '' })
-            setPurchaseMessage('Purchase complete. Thank you for your order.')
-            navigate('/shipping')
+            const { url } = await response.json()
+            window.location.assign(url)
         } catch (error) {
             setPurchaseMessage(`Purchase failed: ${error.message}`)
         } finally {
@@ -146,7 +170,11 @@ export default function Cart() {
                             <section className="cart-items" aria-label="Purchased items">
                                 {cart.map((product, index) => (
                                     <article className="cart-item" key={`${product.id}-${index}`}>
-                                        <div className="cart-item-image">{product.image}</div>
+                                        <div className="cart-item-image" aria-label={`${product.name} image`}>
+                                            {product.image?.startsWith('data:image') || product.image?.startsWith('http') || product.image?.startsWith('/')
+                                                ? <img src={product.image} alt={`${product.name} product`} />
+                                                : <span>{product.image}</span>}
+                                        </div>
                                         <div className="cart-item-details">
                                             <p className="product-category">{product.category}</p>
                                             <h2 className="product-name">{product.name}</h2>
