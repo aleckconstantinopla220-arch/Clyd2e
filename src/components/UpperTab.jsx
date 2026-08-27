@@ -5,7 +5,13 @@ import { ADMIN_EMAIL, API_BASE_URL } from '../config'
 export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0, onCartClick, onShippingClick, isVisible = true, isAdmin = false }) {
     const navigate = useNavigate()
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
+    const [isMobileView, setIsMobileView] = useState(() => localStorage.getItem('mobile-view') === 'true')
     const [adminOrderCount, setAdminOrderCount] = useState(0)
+
+    useEffect(() => {
+        document.body.classList.toggle('mobile-view', isMobileView)
+        localStorage.setItem('mobile-view', String(isMobileView))
+    }, [isMobileView])
 
     useEffect(() => {
         if (!isAdmin) {
@@ -63,6 +69,11 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
         navigate('/home')
     }
 
+    const handleMobileViewSwitch = () => {
+        setIsMobileView(prev => !prev)
+        setIsAccountMenuOpen(false)
+    }
+
     return (
         <nav className={`store-navbar ${!isVisible ? 'navbar-hidden' : ''}`}>
             <div className="nav-content">
@@ -116,6 +127,9 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
                             <div className="account-dropdown" role="menu">
                                 <button type="button" role="menuitem" onClick={handleCartClick}>My Cart</button>
                                 <button type="button" role="menuitem" onClick={handleShippingClick}>Shipping</button>
+                                <button type="button" role="menuitem" onClick={handleMobileViewSwitch}>
+                                    {isMobileView ? 'Switch to Desktop' : 'Switch to Mobile'}
+                                </button>
                                 <button type="button" role="menuitem" onClick={handleRoleSwitch}>
                                     {isAdmin ? 'Switch to User' : 'Switch to Admin'}
                                 </button>

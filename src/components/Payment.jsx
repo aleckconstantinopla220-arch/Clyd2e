@@ -16,6 +16,7 @@ export default function Payment() {
     const [paymentMethod, setPaymentMethod] = useState('gcash')
     const [message, setMessage] = useState('')
     const [isPaying, setIsPaying] = useState(false)
+    const [isPurchaseSummaryOpen, setIsPurchaseSummaryOpen] = useState(false)
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL
     const total = cart.reduce((sum, item) => sum + parsePrice(item.price), 0)
@@ -106,8 +107,16 @@ export default function Payment() {
             <Sidebar isOpen={isSidebarOpen} onClose={() => setIsSidebarOpen(false)} />
             <main className="payment-page">
                 <button type="button" className="payment-back" onClick={() => navigate('/cart')}>Back to Cart</button>
+                <button type="button" className="payment-items-card" onClick={() => setIsPurchaseSummaryOpen(true)} aria-haspopup="dialog" aria-expanded={isPurchaseSummaryOpen}>
+                    <span>
+                        <span className="payment-items-label">Your purchase</span>
+                        <strong>{cart.length} item{cart.length === 1 ? '' : 's'}</strong>
+                    </span>
+                    <span className="payment-items-total">Total: {formatPrice(total)}</span>
+                    <span className="payment-items-arrow" aria-hidden="true">→</span>
+                </button>
                 <div className="payment-layout">
-                    <section className="payment-intro"><p className="module-page-label">Secure payment</p><h1>Complete your purchase</h1><p>Choose your preferred e-wallet. You will authorize the payment securely with PayMongo.</p><div className="payment-total"><span>Total</span><strong>{formatPrice(total)}</strong></div></section>
+                    <section className="payment-intro"><p className="module-page-label">Secure payment</p><h1>Complete your purchase</h1><div className="payment-total"><span>Total</span><strong>{formatPrice(total)}</strong></div></section>
                     <form className="payment-form" onSubmit={handleSubmit}>
                         <h2>Contact and delivery</h2>
                         <label>Name<input name="name" value={customer.name} onChange={updateCustomer} required /></label>
@@ -124,5 +133,30 @@ export default function Payment() {
                 </div>
             </main>
         </div>
+        {isPurchaseSummaryOpen && (
+            <div className="payment-items-backdrop" onClick={() => setIsPurchaseSummaryOpen(false)}>
+                <section className="payment-items-dialog" role="dialog" aria-modal="true" aria-labelledby="payment-items-title" onClick={event => event.stopPropagation()}>
+                    <div className="payment-items-dialog-header">
+                        <div>
+                            <p className="module-page-label">Your purchase</p>
+                            <h2 id="payment-items-title">Items in your order</h2>
+                        </div>
+                        <button type="button" className="payment-items-close" onClick={() => setIsPurchaseSummaryOpen(false)} aria-label="Close purchase items">×</button>
+                    </div>
+                    <div className="payment-items-list">
+                        {cart.map((item, index) => (
+                            <div className="payment-item-row" key={`${item.id}-${index}`}>
+                                <span>{item.name}</span>
+                                <strong>{formatPrice(item.price)}</strong>
+                            </div>
+                        ))}
+                    </div>
+                    <div className="payment-items-summary">
+                        <span>Total</span>
+                        <strong>{formatPrice(total)}</strong>
+                    </div>
+                </section>
+            </div>
+        )}
     </div>
 }

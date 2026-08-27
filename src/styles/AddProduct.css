@@ -114,12 +114,6 @@
     font-size: 13px;
 }
 
-@media (max-width: 640px) {
-    .add-product-page {
-        padding: 40px 16px 48px;
-    }
-}
-
 .managed-products {
     margin-top: 48px;
 }
@@ -200,4 +194,49 @@
 
 .managed-product-actions button:hover {
     background: var(--bg);
+}
+
+@media (max-width: 640px) {
+    .add-product-page {
+        padding: 40px 16px 48px;
+    }
+
+    .managed-products {
+        margin-top: 36px;
+    }
+
+    .managed-products h2 {
+        font-size: 20px;
+    }
+
+    .managed-product {
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        padding: 12px 0;
+    }
+
+    .managed-product div:first-child {
+        min-width: 0;
+    }
+
+    .managed-product div:first-child strong {
+        overflow-wrap: anywhere;
+    }
+
+    .managed-product span {
+        font-size: 11px;
+    }
+
+    .managed-product-actions {
+        grid-column: 1 / -1;
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 5px;
+    }
+
+    .managed-product-actions button {
+        min-height: 34px;
+        padding: 7px 5px;
+        font-size: 10px;
+    }
 }

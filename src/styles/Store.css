@@ -182,7 +182,37 @@
     }
 
     .product-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+    }
+
+    .product-image {
+        aspect-ratio: 1 / 1.1;
+    }
+
+    .product-card-details {
+        gap: 16px;
+        padding: 12px;
+    }
+
+    .product-category {
+        margin-bottom: 6px;
+        font-size: 10px;
+    }
+
+    .product-name {
+        font-size: 16px;
+    }
+
+    .product-card-footer {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .buy-button {
+        width: 100%;
+        padding: 10px 12px;
     }
 }
 
