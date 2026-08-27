@@ -205,6 +205,9 @@ app.post('/api/checkout-session', async (req, res) => {
         return res.status(201).json({ url: session.url })
     } catch (error) {
         console.error('Failed to create Stripe checkout session:', error)
+        if (error.type === 'StripeAuthenticationError') {
+            return res.status(503).json({ error: 'Stripe rejected the server key. Replace STRIPE_SECRET_KEY with an active test secret key.' })
+        }
         return res.status(500).json({ error: 'Unable to start payment' })
     }
 })
