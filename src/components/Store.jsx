@@ -3,8 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
 import initialProducts from '../../products.json'
-import { ADMIN_EMAIL, formatPrice } from '../config'
-import { API_BASE_URL } from '../config'
+import { ADMIN_EMAIL, API_BASE_URL, formatPrice, saveCart } from '../config'
 import '../styles/Home.css'
 import '../styles/Store.css'
 
@@ -41,7 +40,7 @@ export default function Store() {
         setCart(currentCart => {
             const quantity = quantities[product.id] || 1
             const updatedCart = [...currentCart, ...Array(quantity).fill(product)]
-            localStorage.setItem('cart', JSON.stringify(updatedCart))
+            saveCart(updatedCart)
             return updatedCart
         })
     }

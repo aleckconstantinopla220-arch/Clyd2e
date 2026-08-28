@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
-import { ADMIN_EMAIL, API_BASE_URL, formatPrice, parsePrice } from '../config'
+import { ADMIN_EMAIL, API_BASE_URL, formatPrice, parsePrice, saveCart } from '../config'
 import '../styles/Home.css'
 import '../styles/Cart.css'
 
@@ -74,7 +74,7 @@ export default function Cart() {
             } else {
                 updatedCart = currentCart
             }
-            localStorage.setItem('cart', JSON.stringify(updatedCart))
+            saveCart(updatedCart)
             return updatedCart
         })
     }
@@ -183,7 +183,7 @@ export default function Cart() {
                                                 <button type="button" className="remove-item-button" onClick={() => {
                                                     setCart(currentCart => {
                                                         const updatedCart = currentCart.filter(item => item.id !== product.id)
-                                                        localStorage.setItem('cart', JSON.stringify(updatedCart))
+                                                        saveCart(updatedCart)
                                                         return updatedCart
                                                     })
                                                 }}>
