@@ -229,8 +229,14 @@ app.post('/api/payment-intents', async (req, res) => {
         const customerEmail = String(customer.email || '').trim().toLowerCase()
         const customerName = String(customer.name || '').trim()
         const customerAddress = String(customer.address || '').trim()
-        if (!payMongoSecretKey || !Array.isArray(items) || items.length === 0 || !customerName || !customerEmail || !customerAddress) {
-            return res.status(400).json({ error: 'PayMongo, items, name, email and address are required' })
+        if (!payMongoSecretKey) {
+            return res.status(503).json({ error: 'PayMongo is not configured on the server. Add PAYMONGO_SECRET_KEY to the hosting environment.' })
+        }
+        if (!Array.isArray(items) || items.length === 0) {
+            return res.status(400).json({ error: 'Your cart is empty. Add at least one item before paying.' })
+        }
+        if (!customerName || !customerEmail || !customerAddress) {
+            return res.status(400).json({ error: 'Name, email and address are required before paying.' })
         }
 
         const products = readProducts()
