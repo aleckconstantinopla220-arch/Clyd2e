@@ -861,6 +861,10 @@ a:focus-visible {
         gap: 28px;
     }
 
+    .hero-buttons {
+        margin-top: 28px;
+    }
+
     .tour-box {
         padding: 22px 18px;
     }
@@ -880,6 +884,39 @@ a:focus-visible {
 
     .sidebar-scroll {
         padding-top: 76px;
+    }
+
+    .module-page-title {
+        font-size: clamp(38px, 12vw, 52px);
+        line-height: 1;
+    }
+
+    .cart-page,
+    .shipping-page,
+    .admin-orders-page,
+    .add-product-page {
+        width: 100%;
+        min-width: 0;
+    }
+
+    .cart-summary,
+    .shipping-order-footer,
+    .admin-order-card-footer {
+        flex-wrap: wrap;
+    }
+
+    .ordered-details-backdrop,
+    .shipping-modal-backdrop,
+    .order-modal-backdrop {
+        padding: 12px;
+    }
+
+    .ordered-details-dialog,
+    .shipping-modal,
+    .order-modal,
+    .order-confirmation-dialog {
+        max-height: calc(100vh - 24px);
+        overflow-y: auto;
     }
 }
 

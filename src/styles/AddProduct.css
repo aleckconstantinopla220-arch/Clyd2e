@@ -207,6 +207,10 @@
         padding: 40px 16px 48px;
     }
 
+    .add-product-form {
+        padding: 16px;
+    }
+
     .managed-products {
         margin-top: 36px;
     }

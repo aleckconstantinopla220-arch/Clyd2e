@@ -203,6 +203,11 @@
         display: block;
     }
 
+    .shipping-order-footer {
+        align-items: flex-start;
+        margin-top: 20px;
+    }
+
     .shipping-order-heading .shipping-status {
         display: inline-block;
         margin-top: 16px;

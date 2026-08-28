@@ -6,7 +6,15 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
     const navigate = useNavigate()
     const [isAccountMenuOpen, setIsAccountMenuOpen] = useState(false)
     const [isMobileView, setIsMobileView] = useState(() => localStorage.getItem('mobile-view') === 'true')
+    const [isDesktopBrowser, setIsDesktopBrowser] = useState(() => window.matchMedia('(min-width: 641px)').matches)
     const [adminOrderCount, setAdminOrderCount] = useState(0)
+
+    useEffect(() => {
+        const mediaQuery = window.matchMedia('(min-width: 641px)')
+        const handleViewportChange = event => setIsDesktopBrowser(event.matches)
+        mediaQuery.addEventListener('change', handleViewportChange)
+        return () => mediaQuery.removeEventListener('change', handleViewportChange)
+    }, [])
 
     useEffect(() => {
         document.body.classList.toggle('mobile-view', isMobileView)
@@ -127,9 +135,11 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
                             <div className="account-dropdown" role="menu">
                                 <button type="button" role="menuitem" onClick={handleCartClick}>My Cart</button>
                                 <button type="button" role="menuitem" onClick={handleShippingClick}>Shipping</button>
-                                <button type="button" role="menuitem" onClick={handleMobileViewSwitch}>
-                                    {isMobileView ? 'Switch to Desktop' : 'Switch to Mobile'}
-                                </button>
+                                {isDesktopBrowser && (
+                                    <button type="button" role="menuitem" onClick={handleMobileViewSwitch}>
+                                        {isMobileView ? 'Switch to Desktop' : 'Switch to Mobile'}
+                                    </button>
+                                )}
                                 <button type="button" role="menuitem" onClick={handleRoleSwitch}>
                                     {isAdmin ? 'Switch to User' : 'Switch to Admin'}
                                 </button>

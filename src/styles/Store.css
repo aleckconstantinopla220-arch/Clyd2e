@@ -280,6 +280,36 @@ body.mobile-view .product-card-details {
     padding: 12px;
 }
 
+@media (max-width: 640px) {
+    .products-page {
+        padding: 40px 16px 48px;
+    }
+
+    .products-header {
+        display: block;
+    }
+
+    .cart-status {
+        margin-top: 20px;
+    }
+
+    .product-grid {
+        grid-template-columns: minmax(0, 1fr);
+        gap: 12px;
+    }
+
+    .product-card {
+        grid-template-columns: minmax(120px, 38%) minmax(0, 1fr);
+        height: 220px;
+        min-height: 220px;
+    }
+
+    .product-card-details {
+        gap: 12px;
+        padding: 12px;
+    }
+}
+
 .back-home-button {
     margin-top: 36px;
 }

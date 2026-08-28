@@ -260,6 +260,19 @@
         box-shadow: 0 8px 18px rgba(0, 0, 0, 0.07);
     }
 
+    .payment-items-card {
+        flex-wrap: wrap;
+        gap: 12px;
+    }
+
+    .payment-items-total {
+        margin-left: 0;
+    }
+
+    .payment-items-arrow {
+        margin-left: auto;
+    }
+
     .payment-intro h1 {
         font-size: 38px;
     }
