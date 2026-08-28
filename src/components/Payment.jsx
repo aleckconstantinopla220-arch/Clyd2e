@@ -16,6 +16,8 @@ export default function Payment() {
     const [paymentMethod, setPaymentMethod] = useState('gcash')
     const [message, setMessage] = useState('')
     const [isPaying, setIsPaying] = useState(false)
+    const [qrCodeUrl, setQrCodeUrl] = useState('')
+    const [pendingIntentId, setPendingIntentId] = useState('')
     const [isPurchaseSummaryOpen, setIsPurchaseSummaryOpen] = useState(false)
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL
@@ -35,7 +37,11 @@ export default function Payment() {
     const completePayment = async intentId => {
         const response = await fetch(`${API_BASE_URL}/api/payment-intents/${encodeURIComponent(intentId)}/complete`, { method: 'POST' })
         const result = await response.json().catch(() => ({}))
-        if (!response.ok) throw new Error(result.error || 'Payment could not be confirmed')
+        if (!response.ok) {
+            const error = new Error(result.error || 'Payment could not be confirmed')
+            error.status = response.status
+            throw error
+        }
         const previousOrders = JSON.parse(localStorage.getItem('orders') || '[]')
         const order = result.order
         const newItems = order.items.map(item => ({ ...item, orderId: order.id, username: order.username, email: order.email, address: order.address, status: order.status, paymentStatus: order.paymentStatus, createdAt: order.createdAt }))
@@ -45,6 +51,18 @@ export default function Payment() {
         localStorage.removeItem('paymongo-intent-id')
         navigate('/shipping')
     }
+
+    useEffect(() => {
+        if (!pendingIntentId) return undefined
+
+        const checkPayment = () => completePayment(pendingIntentId).catch(error => {
+            if (error.status !== 402) setMessage(error.message)
+        })
+
+        checkPayment()
+        const paymentTimer = window.setInterval(checkPayment, 5000)
+        return () => window.clearInterval(paymentTimer)
+    }, [pendingIntentId])
 
     useEffect(() => {
         const intentId = new URLSearchParams(window.location.search).get('payment_intent_id') || localStorage.getItem('paymongo-intent-id')
@@ -59,12 +77,21 @@ export default function Payment() {
             setMessage('PayMongo public key is not configured.')
             return
         }
+        const normalizedCustomer = {
+            name: customer.name.trim(),
+            email: customer.email.trim().toLowerCase(),
+            address: customer.address.trim(),
+        }
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedCustomer.email)) {
+            setMessage('Please enter a valid email address.')
+            return
+        }
         setIsPaying(true)
         setMessage('')
         try {
             const intentResponse = await fetch(`${API_BASE_URL}/api/payment-intents`, {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ items: cart.map(item => ({ id: item.id })), customer })
+                body: JSON.stringify({ items: cart.map(item => ({ id: item.id })), customer: normalizedCustomer })
             })
             const intentResult = await intentResponse.json().catch(() => ({}))
             if (!intentResponse.ok) throw new Error(intentResult.error || 'Unable to start payment')
@@ -74,7 +101,7 @@ export default function Payment() {
             const auth = `Basic ${window.btoa(`${PAYMONGO_PUBLIC_KEY}:`)}`
             const methodResponse = await fetch(`${PAYMONGO_API_URL}/payment_methods`, {
                 method: 'POST', headers: { Authorization: auth, 'Content-Type': 'application/json' },
-                body: JSON.stringify({ data: { attributes: { type: paymentMethod, billing: { name: customer.name, email: customer.email, address: { line1: customer.address, country: 'PH' } } } } })
+                body: JSON.stringify({ data: { attributes: { type: paymentMethod, billing: { name: normalizedCustomer.name, email: normalizedCustomer.email, address: { line1: normalizedCustomer.address, country: 'PH' } } } } })
             })
             const methodResult = await methodResponse.json().catch(() => ({}))
             if (!methodResponse.ok) throw new Error(methodResult.errors?.[0]?.detail || 'E-wallet could not be selected')
@@ -84,10 +111,28 @@ export default function Payment() {
                 body: JSON.stringify({ data: { attributes: { payment_method: methodResult.data.id, client_key: clientKey, return_url: `${window.location.origin}/payment?payment=success` } } })
             })
             const attachResult = await attachResponse.json().catch(() => ({}))
-            if (!attachResponse.ok) throw new Error(attachResult.errors?.[0]?.detail || 'Payment could not be processed')
+            if (!attachResponse.ok) {
+                const detail = attachResult.errors?.[0]?.detail || ''
+                if (attachResponse.status === 404 && /no such payment intent/i.test(detail)) {
+                    localStorage.removeItem('paymongo-intent-id')
+                    throw new Error('PayMongo keys do not match. Set the same test or live account keys in the backend and frontend hosting settings, then try again.')
+                }
+                throw new Error(detail || 'Payment could not be processed')
+            }
             const paymentIntent = attachResult.data
             if (paymentIntent.attributes.status === 'awaiting_next_action') {
-                window.location.assign(paymentIntent.attributes.next_action.redirect.url)
+                const nextAction = paymentIntent.attributes.next_action
+                if (paymentMethod === 'qrph') {
+                    const imageUrl = nextAction?.code?.image_url
+                    if (!imageUrl) throw new Error('PayMongo did not return a QR code. Please try again.')
+                    setQrCodeUrl(imageUrl)
+                    setPendingIntentId(intentId)
+                    return
+                }
+
+                const redirectUrl = nextAction?.redirect?.url
+                if (!redirectUrl) throw new Error('PayMongo did not return a payment redirect. Please try again.')
+                window.location.assign(redirectUrl)
                 return
             }
             if (paymentIntent.attributes.status !== 'succeeded') throw new Error(paymentIntent.attributes.last_payment_error?.message || 'Payment was not completed')
@@ -126,7 +171,13 @@ export default function Payment() {
                         <div className="payment-methods" role="radiogroup" aria-label="Payment method">
                             {[['gcash', 'GCash'], ['paymaya', 'Maya'], ['grab_pay', 'GrabPay'], ['qrph', 'QR Ph']].map(([value, label]) => <button type="button" className={`payment-method ${paymentMethod === value ? 'selected' : ''}`} onClick={() => setPaymentMethod(value)} aria-pressed={paymentMethod === value} key={value}>{label}</button>)}
                         </div>
-                        <p className="payment-note">You will be redirected to {paymentMethod === 'gcash' ? 'GCash' : paymentMethod === 'paymaya' ? 'Maya' : paymentMethod === 'grab_pay' ? 'GrabPay' : 'QR Ph'} to authorize the payment.</p>
+                        <p className="payment-note">{paymentMethod === 'qrph' ? 'Scan the QR code with your bank or e-wallet app to pay.' : `You will be redirected to ${paymentMethod === 'gcash' ? 'GCash' : paymentMethod === 'paymaya' ? 'Maya' : 'GrabPay'} to authorize the payment.`}</p>
+                        {qrCodeUrl && (
+                            <div className="qr-payment-panel">
+                                <img src={qrCodeUrl} alt="Scan QR code to pay" />
+                                <p>Waiting for payment confirmation...</p>
+                            </div>
+                        )}
                         {message && <p className="payment-error" role="alert">{message}</p>}
                         <button type="submit" className="purchase-button" disabled={isPaying}>{isPaying ? 'Processing payment...' : `Pay ${formatPrice(total)}`}</button>
                     </form>
