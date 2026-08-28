@@ -128,6 +128,15 @@ export default function Shipping() {
                                         <span>{order.items.length} item{order.items.length === 1 ? '' : 's'}</span>
                                         <strong>Total: {formatPrice(order.items.reduce((total, item) => total + parsePrice(item.price), 0))}</strong>
                                     </div>
+                                    <div className="shipping-order-preview" aria-label="Products in this order">
+                                        {order.items.slice(0, 3).map((item, index) => (
+                                            <div className="shipping-order-preview-image" key={`${item.id}-${index}`}>
+                                                {item.image?.startsWith('data:image') || item.image?.startsWith('http') || item.image?.startsWith('/')
+                                                    ? <img src={item.image} alt={`${item.name} product`} />
+                                                    : <span>{item.image || item.name}</span>}
+                                            </div>
+                                        ))}
+                                    </div>
                                     <div className={`shipping-status-bar ${isOrderCompleted(order) ? 'completed' : 'ongoing'}`} aria-label={isOrderCompleted(order) ? 'Order completed' : 'Order ongoing'}>
                                         <span className="shipping-status-bar-fill" />
                                     </div>
@@ -156,7 +165,14 @@ export default function Shipping() {
                         <div className="shipping-modal-items">
                             {selectedOrder.items.map((item, index) => (
                                 <div className="shipping-modal-item" key={`${item.id}-${index}`}>
-                                    <span>{item.name}</span>
+                                    <div className="shipping-modal-product">
+                                        <div className="shipping-modal-image">
+                                            {item.image?.startsWith('data:image') || item.image?.startsWith('http') || item.image?.startsWith('/')
+                                                ? <img src={item.image} alt={`${item.name} product`} />
+                                                : <span>{item.image || item.name}</span>}
+                                        </div>
+                                        <span>{item.name}</span>
+                                    </div>
                                     <span>{item.price}</span>
                                 </div>
                             ))}
