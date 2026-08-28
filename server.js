@@ -253,7 +253,7 @@ app.post('/api/payment-intents', async (req, res) => {
                     attributes: {
                         amount: paymentItems.reduce((sum, item) => sum + priceInSmallestUnit(item.price), 0),
                         currency: 'PHP',
-                        payment_method_allowed: ['gcash', 'paymaya', 'grab_pay'],
+                        payment_method_allowed: ['gcash', 'paymaya', 'grab_pay', 'qrph'],
                         description: `Clyd2e order for ${customerName}`,
                         metadata: { customerName, customerEmail, customerAddress, productIds: paymentItems.map(item => item.id).join(',') }
                     }

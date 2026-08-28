@@ -210,7 +210,7 @@
 
 .payment-methods {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: repeat(4, 1fr);
     gap: 10px;
 }
 
@@ -280,6 +280,10 @@
     .payment-method {
         padding: 12px 4px;
         font-size: 13px;
+    }
+
+    .payment-methods {
+        grid-template-columns: repeat(2, 1fr);
     }
 }
 

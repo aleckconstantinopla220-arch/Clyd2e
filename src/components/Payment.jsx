@@ -124,9 +124,9 @@ export default function Payment() {
                         <label>Address<textarea name="address" value={customer.address} onChange={updateCustomer} required rows="3" /></label>
                         <h2>Choose an e-wallet</h2>
                         <div className="payment-methods" role="radiogroup" aria-label="Payment method">
-                            {[['gcash', 'GCash'], ['paymaya', 'Maya'], ['grab_pay', 'GrabPay']].map(([value, label]) => <button type="button" className={`payment-method ${paymentMethod === value ? 'selected' : ''}`} onClick={() => setPaymentMethod(value)} aria-pressed={paymentMethod === value} key={value}>{label}</button>)}
+                            {[['gcash', 'GCash'], ['paymaya', 'Maya'], ['grab_pay', 'GrabPay'], ['qrph', 'QR Ph']].map(([value, label]) => <button type="button" className={`payment-method ${paymentMethod === value ? 'selected' : ''}`} onClick={() => setPaymentMethod(value)} aria-pressed={paymentMethod === value} key={value}>{label}</button>)}
                         </div>
-                        <p className="payment-note">You will be redirected to {paymentMethod === 'gcash' ? 'GCash' : paymentMethod === 'paymaya' ? 'Maya' : 'GrabPay'} to authorize the payment.</p>
+                        <p className="payment-note">You will be redirected to {paymentMethod === 'gcash' ? 'GCash' : paymentMethod === 'paymaya' ? 'Maya' : paymentMethod === 'grab_pay' ? 'GrabPay' : 'QR Ph'} to authorize the payment.</p>
                         {message && <p className="payment-error" role="alert">{message}</p>}
                         <button type="submit" className="purchase-button" disabled={isPaying}>{isPaying ? 'Processing payment...' : `Pay ${formatPrice(total)}`}</button>
                     </form>
