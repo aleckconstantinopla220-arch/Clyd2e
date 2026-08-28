@@ -897,7 +897,7 @@ a:focus-visible {
 }
 
 body.mobile-view .store-container {
-    width: min(100%, 640px);
+    width: 100%;
     margin: 0 auto;
 }
 

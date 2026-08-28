@@ -106,9 +106,9 @@ export default function Home() {
                     {/* Hero Section */}
                     <section className="hero">
                         <div className="hero-content">
-                            <p className="hero-label">Clyd2e's Official Store · Est. 2025</p>
-                            <h2 className="hero-title">Very <span className="hero-accent">Stinky</span></h2>
-                            <p className="hero-description">Mookies is stinky.<br />June and Kyle Stinkers as well.</p>
+                            <p className="hero-label">Cly2e's Official Store · Est. 2025</p>
+                            <h2 className="hero-title">CLY2E'S<span className="hero-accent">STORE</span></h2>
+                            <p className="hero-description">Mga may bitaw lng<br />ang pwedeng bumili</p>
                             <div className="hero-buttons">
                                 <a href="/store" className="btn btn-primary">Store</a>
                                 <a href="#tour" className="btn btn-secondary">Tour dates</a>

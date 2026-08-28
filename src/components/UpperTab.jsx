@@ -89,7 +89,7 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
                         <span></span>
                     </span>
                 </button>
-                <h1 className="store-logo">CLYD2E'S<span> STORE</span></h1>
+                <h1 className="store-logo">CLY2E'S<span> STORE</span></h1>
                 <div className="nav-right">
                     <button className="nav-icon-button store-button" onClick={() => navigate('/store')} aria-label="Store" title="Store">
                         <span className="store-icon" aria-hidden="true" />

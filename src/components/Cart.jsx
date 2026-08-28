@@ -62,15 +62,30 @@ export default function Cart() {
         navigate('/home')
     }
 
-    const removeItem = index => {
+    const adjustCartQuantity = (product, amount) => {
         setCart(currentCart => {
-            const updatedCart = currentCart.filter((_, itemIndex) => itemIndex !== index)
+            const productItems = currentCart.filter(item => item.id === product.id)
+            let updatedCart
+            if (amount > 0) {
+                updatedCart = [...currentCart, product]
+            } else if (productItems.length > 1) {
+                const removedIndex = currentCart.findIndex(item => item.id === product.id)
+                updatedCart = currentCart.filter((_, index) => index !== removedIndex)
+            } else {
+                updatedCart = currentCart
+            }
             localStorage.setItem('cart', JSON.stringify(updatedCart))
             return updatedCart
         })
     }
 
     const cartTotal = cart.reduce((total, product) => total + parsePrice(product.price), 0)
+    const groupedCart = Object.values(cart.reduce((groups, product) => {
+        const key = String(product.id)
+        if (!groups[key]) groups[key] = { ...product, quantity: 0 }
+        groups[key].quantity += 1
+        return groups
+    }, {}))
     const orderedGroups = orderedItems.reduce((groups, item) => {
         const orderKey = item.orderId || item.id
         if (!groups[orderKey]) {
@@ -145,8 +160,8 @@ export default function Cart() {
                     ) : (
                         <>
                             <section className="cart-items" aria-label="Purchased items">
-                                {cart.map((product, index) => (
-                                    <article className="cart-item" key={`${product.id}-${index}`}>
+                                {groupedCart.map(product => (
+                                    <article className="cart-item" key={product.id}>
                                         <div className="cart-item-image" aria-label={`${product.name} image`}>
                                             {product.image?.startsWith('data:image') || product.image?.startsWith('http') || product.image?.startsWith('/')
                                                 ? <img src={product.image} alt={`${product.name} product`} />
@@ -155,11 +170,27 @@ export default function Cart() {
                                         <div className="cart-item-details">
                                             <p className="product-category">{product.category}</p>
                                             <h2 className="product-name">{product.name}</h2>
+                                            <div className="cart-item-quantity">
+                                                <span>Quantity</span>
+                                                <span className="cart-quantity-stepper">
+                                                    <button type="button" onClick={() => adjustCartQuantity(product, -1)} disabled={product.quantity === 1} aria-label={`Decrease quantity for ${product.name}`}>-</button>
+                                                    <span>{product.quantity}</span>
+                                                    <button type="button" onClick={() => adjustCartQuantity(product, 1)} aria-label={`Increase quantity for ${product.name}`}>+</button>
+                                                </span>
+                                            </div>
+                                            <div className="cart-item-footer">
+                                                <span className="product-price">{formatPrice(product.price)}</span>
+                                                <button type="button" className="remove-item-button" onClick={() => {
+                                                    setCart(currentCart => {
+                                                        const updatedCart = currentCart.filter(item => item.id !== product.id)
+                                                        localStorage.setItem('cart', JSON.stringify(updatedCart))
+                                                        return updatedCart
+                                                    })
+                                                }}>
+                                                    Remove
+                                                </button>
+                                            </div>
                                         </div>
-                                        <span className="product-price">{formatPrice(product.price)}</span>
-                                        <button type="button" className="remove-item-button" onClick={() => removeItem(index)}>
-                                            Remove
-                                        </button>
                                     </article>
                                 ))}
                             </section>

@@ -77,7 +77,10 @@ const writeUsers = (users) => {
 
 const readProducts = () => {
     const data = fs.readFileSync(PRODUCTS_DB, 'utf-8')
-    return JSON.parse(data || '[]')
+    return JSON.parse(data || '[]').map(product => ({
+        ...product,
+        description: typeof product.description === 'string' ? product.description : ''
+    }))
 }
 
 const writeProducts = (products) => {
@@ -482,7 +485,7 @@ app.post('/api/orders/:id/remove', (req, res) => {
 // Add new product (admin only)
 app.post('/api/products', (req, res) => {
     try {
-        const { name, category, price, image, preOrderOnly, adminId } = req.body
+        const { name, description, category, price, image, preOrderOnly, adminId } = req.body
 
         if (!name || !category || !price || !image || !adminId) {
             return res.status(400).json({ error: 'All fields are required' })
@@ -499,6 +502,7 @@ app.post('/api/products', (req, res) => {
         const newProduct = {
             id: Math.max(...products.map(p => p.id), 0) + 1,
             name,
+            description: description || '',
             category,
             price,
             image,
@@ -522,7 +526,7 @@ app.post('/api/products', (req, res) => {
 app.put('/api/products/:id', (req, res) => {
     try {
         const { id } = req.params
-        const { name, category, price, image, inStock, preOrderOnly, adminId } = req.body
+        const { name, description, category, price, image, inStock, preOrderOnly, adminId } = req.body
 
         if (!adminId) {
             return res.status(401).json({ error: 'Unauthorized: Admin access required' })
@@ -545,6 +549,7 @@ app.put('/api/products/:id', (req, res) => {
         products[productIndex] = {
             ...products[productIndex],
             name: name || products[productIndex].name,
+            description: typeof description === 'string' ? description : products[productIndex].description || '',
             category: category || products[productIndex].category,
             price: price || products[productIndex].price,
             image: image || products[productIndex].image,

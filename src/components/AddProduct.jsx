@@ -10,7 +10,7 @@ import '../styles/AddProduct.css'
 export default function AddProduct() {
     const navigate = useNavigate()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const [form, setForm] = useState({ name: '', category: 'ZINE', price: '', image: '', preOrderOnly: false })
+    const [form, setForm] = useState({ name: '', description: '', category: 'ZINE', price: '', image: '', preOrderOnly: false })
     const [products, setProducts] = useState([])
     const [activeCategory, setActiveCategory] = useState('ALL')
     const [editingId, setEditingId] = useState(null)
@@ -47,8 +47,8 @@ export default function AddProduct() {
         setMessage('')
 
         try {
-            const response = await fetch(`${API_BASE_URL}/api/products`, {
-                method: 'POST',
+            const response = await fetch(`${API_BASE_URL}/api/products${editingId ? `/${editingId}` : ''}`, {
+                method: editingId ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ ...form, adminId })
             })
@@ -58,7 +58,7 @@ export default function AddProduct() {
                 ? currentProducts.map(product => product.id === editingId ? result.product : product)
                 : [...currentProducts, result.product])
             setEditingId(null)
-            setForm({ name: '', category: 'ZINE', price: '', image: '', preOrderOnly: false })
+            setForm({ name: '', description: '', category: 'ZINE', price: '', image: '', preOrderOnly: false })
         } catch (error) {
             setMessage(error.message)
         }
@@ -66,7 +66,7 @@ export default function AddProduct() {
 
     const editProduct = product => {
         setEditingId(product.id)
-        setForm({ name: product.name, category: product.category, price: product.price, image: product.image, preOrderOnly: product.preOrderOnly === true })
+        setForm({ name: product.name, description: product.description || '', category: product.category, price: product.price, image: product.image, preOrderOnly: product.preOrderOnly === true })
         window.scrollTo({ top: 0, behavior: 'smooth' })
     }
 
@@ -107,6 +107,7 @@ export default function AddProduct() {
                     <p className="module-page-description">Create and manage store items.</p>
                     <form className="add-product-form" onSubmit={handleSubmit}>
                         <label>Name<input value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} required /></label>
+                        <label>Description<textarea value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} rows="4" placeholder="Tell customers about this product" /></label>
                         <label>Category<select value={form.category} onChange={event => setForm({ ...form, category: event.target.value })}><option>ZINE</option><option>PHOTOCARD</option><option>INSTAX MINI</option><option>ACCESSORIES</option><option>OTHER</option></select></label>
                         <label>Price<input value={form.price} onChange={event => setForm({ ...form, price: event.target.value })} placeholder="₱25.00" required /></label>
                         <label className="preorder-option"><input type="checkbox" checked={form.preOrderOnly} onChange={event => setForm({ ...form, preOrderOnly: event.target.checked })} /> Pre-orders only</label>
@@ -126,7 +127,7 @@ export default function AddProduct() {
                         {message && <p className="add-product-message" role="alert">{message}</p>}
                         <div className="add-product-actions"><button type="button" className="undo-order-button" onClick={() => {
                             setEditingId(null)
-                            setForm({ name: '', category: 'ZINE', price: '', image: '', preOrderOnly: false })
+                            setForm({ name: '', description: '', category: 'ZINE', price: '', image: '', preOrderOnly: false })
                             setMessage('')
                         }}>Cancel</button><button type="submit" className="complete-order-button">{editingId ? 'Save changes' : 'Add product'}</button></div>
                     </form>

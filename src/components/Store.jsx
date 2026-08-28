@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
-import products from '../../products.json'
+import initialProducts from '../../products.json'
 import { ADMIN_EMAIL, formatPrice } from '../config'
+import { API_BASE_URL } from '../config'
 import '../styles/Home.css'
 import '../styles/Store.css'
 
@@ -11,12 +12,18 @@ export default function Store() {
     const navigate = useNavigate()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
     const [selectedCategory, setSelectedCategory] = useState('ALL')
+    const [quantities, setQuantities] = useState({})
     const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('cart') || '[]'))
+    const [products, setProducts] = useState(initialProducts)
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL
 
     useEffect(() => {
         window.scrollTo({ top: 0, behavior: 'smooth' })
+        fetch(`${API_BASE_URL}/api/products`)
+            .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load products')))
+            .then(setProducts)
+            .catch(() => { })
     }, [])
 
     const categories = ['ALL', 'ZINE', 'PHOTOCARD', 'INSTAX MINI', 'ACCESSORIES', 'OTHER']
@@ -32,10 +39,18 @@ export default function Store() {
 
     const handleBuy = product => {
         setCart(currentCart => {
-            const updatedCart = [...currentCart, product]
+            const quantity = quantities[product.id] || 1
+            const updatedCart = [...currentCart, ...Array(quantity).fill(product)]
             localStorage.setItem('cart', JSON.stringify(updatedCart))
             return updatedCart
         })
+    }
+
+    const adjustQuantity = (productId, amount) => {
+        setQuantities(currentQuantities => ({
+            ...currentQuantities,
+            [productId]: Math.max(1, (currentQuantities[productId] || 1) + amount),
+        }))
     }
 
     return (
@@ -90,7 +105,7 @@ export default function Store() {
                         <section className="product-grid" aria-label="Products">
                             {visibleProducts.map(product => (
                                 <article className="product-card" key={product.id}>
-                                    <div className="product-image" aria-label={`${product.name} image placeholder`}>
+                                    <div className="product-image" aria-label={`${product.name} product image`}>
                                         {product.image?.startsWith('data:image') || product.image?.startsWith('http') || product.image?.startsWith('/')
                                             ? <img src={product.image} alt={`${product.name} product`} />
                                             : <span>{product.image}</span>}
@@ -99,12 +114,21 @@ export default function Store() {
                                         <div>
                                             <p className="product-category">{product.category}</p>
                                             <h2 className="product-name">{product.name}</h2>
+                                            {product.description && <p className="product-description">{product.description}</p>}
                                             {product.preOrderOnly && <p className="preorder-label">Pre-order only</p>}
                                         </div>
                                         <div className="product-card-footer">
+                                            <label className="quantity-control">
+                                                <span>Qty</span>
+                                                <span className="quantity-stepper">
+                                                    <button type="button" className="quantity-button" onClick={() => adjustQuantity(product.id, -1)} disabled={product.inStock === false || (quantities[product.id] || 1) === 1} aria-label={`Decrease quantity for ${product.name}`}>-</button>
+                                                    <span className="quantity-value">{quantities[product.id] || 1}</span>
+                                                    <button type="button" className="quantity-button" onClick={() => adjustQuantity(product.id, 1)} disabled={product.inStock === false} aria-label={`Increase quantity for ${product.name}`}>+</button>
+                                                </span>
+                                            </label>
                                             <span className="product-price">{formatPrice(product.price)}</span>
                                             <button type="button" className="buy-button" onClick={() => handleBuy(product)} disabled={product.inStock === false}>
-                                                {product.inStock === false ? 'Out of stock' : 'Buy'}
+                                                {product.inStock === false ? 'Out of stock' : 'Add to cart'}
                                             </button>
                                         </div>
                                     </div>
