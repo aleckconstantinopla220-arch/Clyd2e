@@ -150,6 +150,14 @@
     text-transform: uppercase;
 }
 
+.stock-label {
+    margin-top: 8px;
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
 .product-card-footer {
     display: grid;
     grid-template-columns: auto minmax(0, 1fr);

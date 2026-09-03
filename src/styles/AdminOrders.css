@@ -94,6 +94,27 @@
     margin-top: 8px;
 }
 
+.admin-order-type-tag {
+    display: inline-block;
+    margin-top: 16px;
+    padding: 5px 8px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.admin-order-type-tag.preorder {
+    border-color: #a06a2c;
+    color: #a06a2c;
+}
+
+.admin-order-type-tag.regular {
+    border-color: var(--line);
+}
+
 .admin-order-card-footer {
     display: flex;
     justify-content: space-between;

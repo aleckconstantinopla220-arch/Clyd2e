@@ -17,6 +17,32 @@
     background: var(--surface);
 }
 
+.add-product-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 36px;
+}
+
+.add-product-tabs button {
+    padding: 10px 16px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    text-transform: uppercase;
+}
+
+.add-product-tabs button.active,
+.add-product-tabs button:hover {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--surface);
+}
+
 .add-product-form label {
     display: flex;
     flex-direction: column;

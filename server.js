@@ -14,6 +14,7 @@ const PORT = process.env.PORT || 3001
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'aleckconstantinopla220@gmail.com'
 const USERS_DB = path.join(__dirname, 'users.json')
 const PRODUCTS_DB = path.join(__dirname, 'products.json')
+const CATEGORIES_DB = path.join(__dirname, 'categories.json')
 const ORDERS_DB = process.env.ORDERS_DB_PATH || path.join(__dirname, 'orders.json')
 const payMongoSecretKey = process.env.PAYMONGO_SECRET_KEY
 const payMongoWebhookSecret = process.env.PAYMONGO_WEBHOOK_SECRET
@@ -65,6 +66,10 @@ if (!fs.existsSync(ORDERS_DB)) {
     fs.writeFileSync(ORDERS_DB, JSON.stringify([]))
 }
 
+if (!fs.existsSync(CATEGORIES_DB)) {
+    fs.writeFileSync(CATEGORIES_DB, JSON.stringify(['ZINE', 'PHOTOCARD', 'INSTAX MINI', 'ACCESSORIES', 'OTHER'], null, 2))
+}
+
 // Utility functions
 const readUsers = () => {
     const data = fs.readFileSync(USERS_DB, 'utf-8')
@@ -77,15 +82,24 @@ const writeUsers = (users) => {
 
 const readProducts = () => {
     const data = fs.readFileSync(PRODUCTS_DB, 'utf-8')
-    return JSON.parse(data || '[]').map(product => ({
-        ...product,
-        description: typeof product.description === 'string' ? product.description : ''
-    }))
+    return JSON.parse(data || '[]').map(product => {
+        const isPreOrder = product.preOrderOnly === true
+        const stockLimit = isPreOrder ? null : Number.isInteger(Number(product.stockLimit)) && product.stockLimit !== '' ? Number(product.stockLimit) : 0
+        return {
+            ...product,
+            description: typeof product.description === 'string' ? product.description : '',
+            stockLimit,
+            inStock: isPreOrder ? product.inStock !== false : stockLimit > 0 && product.inStock !== false
+        }
+    })
 }
 
 const writeProducts = (products) => {
     fs.writeFileSync(PRODUCTS_DB, JSON.stringify(products, null, 2))
 }
+
+const readCategories = () => JSON.parse(fs.readFileSync(CATEGORIES_DB, 'utf-8') || '[]')
+const writeCategories = categories => fs.writeFileSync(CATEGORIES_DB, JSON.stringify(categories, null, 2))
 
 const readOrders = () => {
     const data = fs.readFileSync(ORDERS_DB, 'utf-8')
@@ -101,6 +115,19 @@ const isAuthorizedAdmin = (users, adminId, adminEmail) => users.some(user =>
     isAdminUser(user) && ((adminId && user.id === adminId) || (adminEmail && user.email.toLowerCase() === adminEmail.toLowerCase()))
 )
 const priceInSmallestUnit = value => Math.round((Number(String(value).replace(/[^0-9.-]/g, '')) || 0) * 100)
+const getStockIssues = (products, productIds) => {
+    const quantities = productIds.reduce((counts, id) => ({ ...counts, [id]: (counts[id] || 0) + 1 }), {})
+    return Object.entries(quantities).some(([id, quantity]) => {
+        const product = products.find(item => item.id === Number(id))
+        return product?.preOrderOnly !== true && product?.stockLimit != null && quantity > Number(product.stockLimit)
+    })
+}
+const decrementStock = (products, productIds) => {
+    const quantities = productIds.reduce((counts, id) => ({ ...counts, [id]: (counts[id] || 0) + 1 }), {})
+    return products.map(product => quantities[product.id] && product.preOrderOnly !== true && product.stockLimit != null
+        ? { ...product, stockLimit: Math.max(0, Number(product.stockLimit) - quantities[product.id]), inStock: Number(product.stockLimit) - quantities[product.id] > 0 }
+        : product)
+}
 const payMongoHeaders = () => ({
     Authorization: `Basic ${Buffer.from(`${payMongoSecretKey}:`).toString('base64')}`,
     'Content-Type': 'application/json'
@@ -122,6 +149,7 @@ const fulfillPaymentIntent = async intentId => {
     const products = readProducts()
     const items = productIds.map(id => products.find(product => product.id === id)).filter(Boolean)
     if (items.length !== productIds.length || items.length === 0) throw new Error('Unable to restore purchased products')
+    if (getStockIssues(products, productIds)) throw new Error('One or more products do not have enough stock')
 
     const order = {
         id: Date.now().toString(), userId: null, username: metadata.customerName,
@@ -132,6 +160,7 @@ const fulfillPaymentIntent = async intentId => {
     }
     orders.push(order)
     writeOrders(orders)
+    writeProducts(decrementStock(products, productIds))
     return order
 }
 
@@ -222,6 +251,34 @@ app.get('/api/products', (req, res) => {
     }
 })
 
+app.get('/api/categories', (req, res) => {
+    try {
+        res.status(200).json(readCategories())
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch categories' })
+    }
+})
+
+app.post('/api/categories', (req, res) => {
+    try {
+        const { name, adminId } = req.body
+        const users = readUsers()
+        const admin = users.find(user => user.id === adminId && isAdminUser(user))
+        const category = String(name || '').trim().toUpperCase()
+        if (!admin) return res.status(401).json({ error: 'Unauthorized: Admin access required' })
+        if (!category) return res.status(400).json({ error: 'Category name is required' })
+        const categories = readCategories()
+        if (categories.some(existingCategory => existingCategory.toLowerCase() === category.toLowerCase())) {
+            return res.status(409).json({ error: 'Category already exists' })
+        }
+        categories.push(category)
+        writeCategories(categories)
+        res.status(201).json({ category })
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to create category' })
+    }
+})
+
 // Create a Payment Intent for the custom payment page.
 app.post('/api/payment-intents', async (req, res) => {
     try {
@@ -242,7 +299,7 @@ app.post('/api/payment-intents', async (req, res) => {
 
         const products = readProducts()
         const paymentItems = items.map(item => products.find(product => product.id === Number(item.id))).filter(Boolean)
-        if (paymentItems.length !== items.length || paymentItems.some(item => priceInSmallestUnit(item.price) < 100)) {
+        if (paymentItems.length !== items.length || paymentItems.some(item => priceInSmallestUnit(item.price) < 100) || getStockIssues(products, items.map(item => Number(item.id)))) {
             return res.status(400).json({ error: 'One or more products are unavailable or below the PHP 1.00 minimum' })
         }
 
@@ -302,7 +359,7 @@ app.post('/api/checkout-session', async (req, res) => {
 
         const products = readProducts()
         const checkoutItems = items.map(item => products.find(product => product.id === Number(item.id))).filter(Boolean)
-        if (checkoutItems.length !== items.length || checkoutItems.some(item => priceInSmallestUnit(item.price) <= 0)) {
+        if (checkoutItems.length !== items.length || checkoutItems.some(item => priceInSmallestUnit(item.price) <= 0) || getStockIssues(products, items.map(item => Number(item.id)))) {
             return res.status(400).json({ error: 'One or more products are no longer available' })
         }
 
@@ -377,6 +434,9 @@ app.post('/api/orders/complete', async (req, res) => {
         if (items.length !== productIds.length || items.length === 0) {
             return res.status(400).json({ error: 'Unable to restore purchased products' })
         }
+        if (getStockIssues(products, productIds)) {
+            return res.status(409).json({ error: 'One or more products do not have enough stock' })
+        }
 
         const order = {
             id: Date.now().toString(),
@@ -395,6 +455,7 @@ app.post('/api/orders/complete', async (req, res) => {
 
         orders.push(order)
         writeOrders(orders)
+        writeProducts(decrementStock(products, productIds))
 
         res.status(201).json({ message: 'Order created successfully', order })
     } catch (error) {
@@ -494,10 +555,13 @@ app.post('/api/orders/:id/remove', (req, res) => {
 // Add new product (admin only)
 app.post('/api/products', (req, res) => {
     try {
-        const { name, description, category, price, image, preOrderOnly, adminId } = req.body
+        const { name, description, category, price, image, preOrderOnly, stockLimit, adminId } = req.body
 
         if (!name || !category || !price || !image || !adminId) {
             return res.status(400).json({ error: 'All fields are required' })
+        }
+        if (preOrderOnly !== true && (!Number.isInteger(Number(stockLimit)) || Number(stockLimit) < 0)) {
+            return res.status(400).json({ error: 'A valid stock limit is required for regular products' })
         }
 
         const users = readUsers()
@@ -515,8 +579,9 @@ app.post('/api/products', (req, res) => {
             category,
             price,
             image,
-            inStock: true,
-            preOrderOnly: preOrderOnly === true
+            preOrderOnly: preOrderOnly === true,
+            stockLimit: preOrderOnly === true ? null : Number(stockLimit),
+            inStock: preOrderOnly === true || Number(stockLimit) > 0
         }
 
         products.push(newProduct)
@@ -535,10 +600,13 @@ app.post('/api/products', (req, res) => {
 app.put('/api/products/:id', (req, res) => {
     try {
         const { id } = req.params
-        const { name, description, category, price, image, inStock, preOrderOnly, adminId } = req.body
+        const { name, description, category, price, image, inStock, preOrderOnly, stockLimit, adminId } = req.body
 
         if (!adminId) {
             return res.status(401).json({ error: 'Unauthorized: Admin access required' })
+        }
+        if (preOrderOnly !== true && stockLimit != null && (!Number.isInteger(Number(stockLimit)) || Number(stockLimit) < 0)) {
+            return res.status(400).json({ error: 'Stock limit must be a non-negative whole number' })
         }
 
         const users = readUsers()
@@ -555,6 +623,11 @@ app.put('/api/products/:id', (req, res) => {
             return res.status(404).json({ error: 'Product not found' })
         }
 
+        const nextPreOrderOnly = typeof preOrderOnly === 'boolean' ? preOrderOnly : products[productIndex].preOrderOnly === true
+        const nextStockLimit = nextPreOrderOnly
+            ? null
+            : stockLimit == null ? products[productIndex].stockLimit ?? 0 : Number(stockLimit)
+
         products[productIndex] = {
             ...products[productIndex],
             name: name || products[productIndex].name,
@@ -562,8 +635,9 @@ app.put('/api/products/:id', (req, res) => {
             category: category || products[productIndex].category,
             price: price || products[productIndex].price,
             image: image || products[productIndex].image,
-            inStock: typeof inStock === 'boolean' ? inStock : products[productIndex].inStock !== false,
-            preOrderOnly: typeof preOrderOnly === 'boolean' ? preOrderOnly : products[productIndex].preOrderOnly === true
+            inStock: nextPreOrderOnly ? true : nextStockLimit > 0 && (typeof inStock !== 'boolean' || inStock),
+            preOrderOnly: nextPreOrderOnly,
+            stockLimit: nextStockLimit
         }
 
         writeProducts(products)

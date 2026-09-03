@@ -14,6 +14,7 @@ export default function Store() {
     const [quantities, setQuantities] = useState({})
     const [cart, setCart] = useState(() => JSON.parse(localStorage.getItem('cart') || '[]'))
     const [products, setProducts] = useState(initialProducts)
+    const [categories, setCategories] = useState(['ZINE', 'PHOTOCARD', 'INSTAX MINI', 'ACCESSORIES', 'OTHER'])
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL
 
@@ -23,9 +24,16 @@ export default function Store() {
             .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load products')))
             .then(setProducts)
             .catch(() => { })
+        fetch(`${API_BASE_URL}/api/categories`)
+            .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load categories')))
+            .then(setCategories)
+            .catch(() => { })
     }, [])
 
-    const categories = ['ALL', 'ZINE', 'PHOTOCARD', 'INSTAX MINI', 'ACCESSORIES', 'OTHER']
+    const itemCategories = products
+        .map(product => typeof product.category === 'string' ? product.category.trim() : '')
+        .filter(Boolean)
+    const categoryFilters = ['ALL', ...new Set([...categories, ...itemCategories])]
 
     const handleLogout = () => {
         localStorage.removeItem('user')
@@ -34,11 +42,18 @@ export default function Store() {
 
     const visibleProducts = selectedCategory === 'ALL'
         ? products
-        : products.filter(product => product.category === selectedCategory)
+        : products.filter(product => product.category?.trim().toLowerCase() === selectedCategory.toLowerCase())
+
+    const getRemainingStock = (product, currentCart = cart) => {
+        if (product.preOrderOnly) return Number.POSITIVE_INFINITY
+        return Math.max(0, Number(product.stockLimit) - currentCart.filter(item => item.id === product.id).length)
+    }
 
     const handleBuy = product => {
         setCart(currentCart => {
+            const remainingStock = getRemainingStock(product, currentCart)
             const quantity = quantities[product.id] || 1
+            if (quantity < 1 || quantity > remainingStock) return currentCart
             const updatedCart = [...currentCart, ...Array(quantity).fill(product)]
             saveCart(updatedCart)
             return updatedCart
@@ -48,7 +63,10 @@ export default function Store() {
     const adjustQuantity = (productId, amount) => {
         setQuantities(currentQuantities => ({
             ...currentQuantities,
-            [productId]: Math.max(1, (currentQuantities[productId] || 1) + amount),
+            [productId]: Math.max(1, Math.min(
+                (currentQuantities[productId] || 1) + amount,
+                getRemainingStock(products.find(product => product.id === productId) || {})
+            )),
         }))
     }
 
@@ -88,7 +106,7 @@ export default function Store() {
                         </header>
 
                         <nav className="category-filters" aria-label="Product categories">
-                            {categories.map(category => (
+                            {categoryFilters.map(category => (
                                 <button
                                     key={category}
                                     type="button"
@@ -115,6 +133,7 @@ export default function Store() {
                                             <h2 className="product-name">{product.name}</h2>
                                             {product.description && <p className="product-description">{product.description}</p>}
                                             {product.preOrderOnly && <p className="preorder-label">Pre-order only</p>}
+                                            {!product.preOrderOnly && <p className="stock-label">{getRemainingStock(product)} in stock</p>}
                                         </div>
                                         <div className="product-card-footer">
                                             <label className="quantity-control">
@@ -122,12 +141,12 @@ export default function Store() {
                                                 <span className="quantity-stepper">
                                                     <button type="button" className="quantity-button" onClick={() => adjustQuantity(product.id, -1)} disabled={product.inStock === false || (quantities[product.id] || 1) === 1} aria-label={`Decrease quantity for ${product.name}`}>-</button>
                                                     <span className="quantity-value">{quantities[product.id] || 1}</span>
-                                                    <button type="button" className="quantity-button" onClick={() => adjustQuantity(product.id, 1)} disabled={product.inStock === false} aria-label={`Increase quantity for ${product.name}`}>+</button>
+                                                    <button type="button" className="quantity-button" onClick={() => adjustQuantity(product.id, 1)} disabled={product.inStock === false || (!product.preOrderOnly && (quantities[product.id] || 1) >= getRemainingStock(product))} aria-label={`Increase quantity for ${product.name}`}>+</button>
                                                 </span>
                                             </label>
                                             <span className="product-price">{formatPrice(product.price)}</span>
-                                            <button type="button" className="buy-button" onClick={() => handleBuy(product)} disabled={product.inStock === false}>
-                                                {product.inStock === false ? 'Out of stock' : 'Add to cart'}
+                                            <button type="button" className="buy-button" onClick={() => handleBuy(product)} disabled={product.inStock === false || (!product.preOrderOnly && getRemainingStock(product) < 1) || (quantities[product.id] || 1) > getRemainingStock(product)}>
+                                                {product.inStock === false || (!product.preOrderOnly && getRemainingStock(product) < 1) || (quantities[product.id] || 1) > getRemainingStock(product) ? 'Out of stock' : 'Add to cart'}
                                             </button>
                                         </div>
                                     </div>

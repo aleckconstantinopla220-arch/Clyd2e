@@ -166,6 +166,9 @@ export default function AdminOrders() {
                                         </div>
                                         <span className="shipping-status">{order.status}</span>
                                     </div>
+                                    <span className={`admin-order-type-tag ${isPreOrderOrder(order) ? 'preorder' : 'regular'}`}>
+                                        {isPreOrderOrder(order) ? 'Pre-Order' : 'Regular Purchase'}
+                                    </span>
                                     <div className="admin-order-card-footer">
                                         <span>{order.items.length} item{order.items.length === 1 ? '' : 's'}</span>
                                         <strong>Total: {formatPrice(order.total)}</strong>
