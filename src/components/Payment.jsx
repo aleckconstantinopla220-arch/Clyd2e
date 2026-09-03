@@ -2,18 +2,40 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
-import { ADMIN_EMAIL, API_BASE_URL, PAYMONGO_PUBLIC_KEY, formatPrice, parsePrice } from '../config'
+import { ADMIN_EMAIL, API_BASE_URL, PAYMONGO_PUBLIC_KEY, formatPrice, parsePrice, savePurchasedOrder } from '../config'
 import '../styles/Home.css'
 import '../styles/Payment.css'
 
 const PAYMONGO_API_URL = 'https://api.paymongo.com/v1'
 
+const getNormalizedCustomer = () => {
+    try {
+        const pendingCustomer = JSON.parse(localStorage.getItem('pending-customer') || '{}')
+        if (!pendingCustomer || typeof pendingCustomer !== 'object') return { name: '', email: '', phone: '', address: '' }
+        const normalizedCustomer = {
+            name: typeof pendingCustomer.name === 'string' ? pendingCustomer.name : '',
+            email: typeof pendingCustomer.email === 'string' ? pendingCustomer.email : '',
+            phone: typeof pendingCustomer.phone === 'string' ? pendingCustomer.phone : '',
+            address: typeof pendingCustomer.address === 'string' ? pendingCustomer.address : ''
+        }
+        localStorage.setItem('pending-customer', JSON.stringify(normalizedCustomer))
+        return normalizedCustomer
+    } catch {
+        localStorage.removeItem('pending-customer')
+        return { name: '', email: '', phone: '', address: '' }
+    }
+}
+
 export default function Payment() {
     const navigate = useNavigate()
     const [isSidebarOpen, setIsSidebarOpen] = useState(false)
-    const [cart] = useState(() => JSON.parse(localStorage.getItem('cart') || '[]'))
-    const [customer, setCustomer] = useState({ name: '', email: '', address: '' })
-    const [paymentMethod, setPaymentMethod] = useState('gcash')
+    const purchaseType = new URLSearchParams(window.location.search).get('purchaseType') === 'preorder' ? 'preorder' : 'regular'
+    const [cart] = useState(() => JSON.parse(localStorage.getItem('cart') || '[]').filter(item => purchaseType === 'preorder' ? item.preOrderOnly : !item.preOrderOnly))
+    const [customer, setCustomer] = useState(() => getNormalizedCustomer())
+    const [paymentMethod, setPaymentMethod] = useState(() => {
+        const savedMethod = localStorage.getItem('selected-payment-method')
+        return ['gcash', 'paymaya', 'grab_pay', 'qrph'].includes(savedMethod) ? savedMethod : 'gcash'
+    })
     const [message, setMessage] = useState('')
     const [isPaying, setIsPaying] = useState(false)
     const [qrCodeUrl, setQrCodeUrl] = useState('')
@@ -29,11 +51,24 @@ export default function Payment() {
     }
 
     useEffect(() => {
-        const pendingCustomer = JSON.parse(localStorage.getItem('pending-customer') || 'null')
-        if (pendingCustomer) setCustomer(pendingCustomer)
-    }, [])
+        const sanitizedCustomer = {
+            name: typeof customer.name === 'string' ? customer.name : '',
+            email: typeof customer.email === 'string' ? customer.email : '',
+            phone: typeof customer.phone === 'string' ? customer.phone : '',
+            address: typeof customer.address === 'string' ? customer.address : ''
+        }
+        localStorage.setItem('pending-customer', JSON.stringify(sanitizedCustomer))
+    }, [customer])
+
+    useEffect(() => {
+        localStorage.setItem('selected-payment-method', paymentMethod)
+    }, [paymentMethod])
 
     const updateCustomer = event => setCustomer({ ...customer, [event.target.name]: event.target.value })
+    const handlePaymentMethodChange = nextMethod => {
+        setPaymentMethod(nextMethod)
+        localStorage.setItem('selected-payment-method', nextMethod)
+    }
     const completePayment = async intentId => {
         const response = await fetch(`${API_BASE_URL}/api/payment-intents/${encodeURIComponent(intentId)}/complete`, { method: 'POST' })
         const result = await response.json().catch(() => ({}))
@@ -42,13 +77,12 @@ export default function Payment() {
             error.status = response.status
             throw error
         }
-        const previousOrders = JSON.parse(localStorage.getItem('orders') || '[]')
         const order = result.order
-        const newItems = order.items.map(item => ({ ...item, orderId: order.id, username: order.username, email: order.email, address: order.address, status: order.status, paymentStatus: order.paymentStatus, createdAt: order.createdAt }))
-        localStorage.setItem('orders', JSON.stringify([...previousOrders.filter(item => item.orderId !== order.id), ...newItems]))
+        savePurchasedOrder(order)
         localStorage.removeItem('cart')
         localStorage.removeItem('pending-customer')
         localStorage.removeItem('paymongo-intent-id')
+        localStorage.removeItem('selected-payment-method')
         navigate('/shipping')
     }
 
@@ -80,10 +114,19 @@ export default function Payment() {
         const normalizedCustomer = {
             name: customer.name.trim(),
             email: customer.email.trim().toLowerCase(),
-            address: customer.address.trim(),
+            phone: customer.phone.trim(),
+            address: customer.address.trim()
+        }
+        if (!normalizedCustomer.name || !normalizedCustomer.email || !normalizedCustomer.address || !normalizedCustomer.phone) {
+            setMessage('Name, email, phone number, and address are required before paying.')
+            return
         }
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedCustomer.email)) {
             setMessage('Please enter a valid email address.')
+            return
+        }
+        if (!/^\+?[0-9\s\-()]{7,20}$/.test(normalizedCustomer.phone)) {
+            setMessage('Please enter a valid phone number.')
             return
         }
         setIsPaying(true)
@@ -166,10 +209,11 @@ export default function Payment() {
                         <h2>Contact and delivery</h2>
                         <label>Name<input name="name" value={customer.name} onChange={updateCustomer} required /></label>
                         <label>Email<input type="email" name="email" value={customer.email} onChange={updateCustomer} required /></label>
+                        <label>Phone Number<input type="tel" name="phone" value={customer.phone} onChange={updateCustomer} required placeholder="e.g. +63 912 345 6789" /></label>
                         <label>Address<textarea name="address" value={customer.address} onChange={updateCustomer} required rows="3" /></label>
                         <h2>Choose an e-wallet</h2>
                         <div className="payment-methods" role="radiogroup" aria-label="Payment method">
-                            {[['gcash', 'GCash'], ['paymaya', 'Maya'], ['grab_pay', 'GrabPay'], ['qrph', 'QR Ph']].map(([value, label]) => <button type="button" className={`payment-method ${paymentMethod === value ? 'selected' : ''}`} onClick={() => setPaymentMethod(value)} aria-pressed={paymentMethod === value} key={value}>{label}</button>)}
+                            {[['gcash', 'GCash'], ['paymaya', 'Maya'], ['grab_pay', 'GrabPay'], ['qrph', 'QR Ph']].map(([value, label]) => <button type="button" className={`payment-method ${paymentMethod === value ? 'selected' : ''}`} onClick={() => handlePaymentMethodChange(value)} aria-pressed={paymentMethod === value} key={value}>{label}</button>)}
                         </div>
                         <p className="payment-note">{paymentMethod === 'qrph' ? 'Scan the QR code with your bank or e-wallet app to pay.' : `You will be redirected to ${paymentMethod === 'gcash' ? 'GCash' : paymentMethod === 'paymaya' ? 'Maya' : 'GrabPay'} to authorize the payment.`}</p>
                         {qrCodeUrl && (

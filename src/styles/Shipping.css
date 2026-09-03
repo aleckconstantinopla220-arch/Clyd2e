@@ -1,5 +1,6 @@
 .shipping-page {
     max-width: 1200px;
+    width: 100%;
     min-height: calc(100vh - 65px);
     margin: 0 auto;
     padding: 56px 24px 64px;
@@ -13,14 +14,41 @@
     margin-bottom: 36px;
 }
 
-.shipping-items {
+.shipping-tab-group {
     display: flex;
-    flex-direction: column;
+    flex-wrap: wrap;
     gap: 12px;
+    margin-bottom: 24px;
+}
+
+.shipping-tab-button {
+    padding: 10px 16px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.shipping-tab-button.active {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--surface);
+}
+
+.shipping-items {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+    width: 100%;
+    justify-content: start;
 }
 
 .shipping-order-card {
-    display: block;
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
     padding: 20px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
@@ -45,10 +73,40 @@
     gap: 20px;
 }
 
+.shipping-order-heading>div {
+    min-width: 0;
+}
+
 .shipping-order-email {
     margin-top: 8px;
     color: var(--muted);
     font-size: 13px;
+}
+
+.shipping-status-tag {
+    display: inline-block;
+    padding: 5px 8px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.shipping-status-tag.shipping {
+    border-color: #d97706;
+    color: #b45309;
+}
+
+.shipping-status-tag.completed {
+    border-color: #4f8a62;
+    color: #4f8a62;
+}
+
+.shipping-status-tag.refunded {
+    border-color: #a6322d;
+    color: #a6322d;
 }
 
 .shipping-status-bar {
@@ -66,14 +124,24 @@
     transition: width 0.3s ease;
 }
 
-.shipping-status-bar.ongoing .shipping-status-bar-fill {
-    width: 52%;
-    background: rgba(23, 23, 23, 0.42);
+.shipping-status-bar.pending .shipping-status-bar-fill {
+    width: 0%;
+    background: transparent;
+}
+
+.shipping-status-bar.shipping .shipping-status-bar-fill {
+    width: 50%;
+    background: #d97706;
 }
 
 .shipping-status-bar.completed .shipping-status-bar-fill {
     width: 100%;
     background: #4f8a62;
+}
+
+.shipping-status-bar.refunded .shipping-status-bar-fill {
+    width: 100%;
+    background: #a6322d;
 }
 
 .shipping-status-label {
@@ -231,6 +299,10 @@
 @media (max-width: 640px) {
     .shipping-page {
         padding: 40px 16px 48px;
+    }
+
+    .shipping-items {
+        grid-template-columns: 1fr;
     }
 
     .shipping-header {

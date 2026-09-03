@@ -9,6 +9,12 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
     const [isDesktopBrowser, setIsDesktopBrowser] = useState(() => window.matchMedia('(min-width: 641px)').matches)
     const [adminOrderCount, setAdminOrderCount] = useState(0)
 
+    const isPreOrderOrder = order => {
+        const status = (order.status || '').trim()
+        const hasPreOrderItem = Array.isArray(order.items) && order.items.some(item => item.preOrderOnly === true)
+        return hasPreOrderItem || /pre[- ]?order/i.test(status)
+    }
+
     useEffect(() => {
         const mediaQuery = window.matchMedia('(min-width: 641px)')
         const handleViewportChange = event => setIsDesktopBrowser(event.matches)
@@ -29,10 +35,25 @@ export default function UpperTab({ isSidebarOpen, onToggleSidebar, cartCount = 0
 
         const user = JSON.parse(localStorage.getItem('user') || '{}')
         const adminId = user.id || (user.email?.toLowerCase() === ADMIN_EMAIL ? 'admin001' : '')
-        fetch(`${API_BASE_URL}/api/orders?adminId=${encodeURIComponent(adminId)}&adminEmail=${encodeURIComponent(user.email || '')}`)
-            .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load orders')))
-            .then(orders => setAdminOrderCount(orders.length))
-            .catch(() => setAdminOrderCount(0))
+        const refreshOrderCount = () => {
+            fetch(`${API_BASE_URL}/api/orders?adminId=${encodeURIComponent(adminId)}&adminEmail=${encodeURIComponent(user.email || '')}`)
+                .then(response => response.ok ? response.json() : Promise.reject(new Error('Unable to load orders')))
+                .then(orders => setAdminOrderCount(orders.filter(order => (
+                    (['Order confirmed', 'Purchased'].includes(order.status) && !isPreOrderOrder(order))
+                    || (isPreOrderOrder(order) && order.status !== 'Refunded')
+                )).length))
+                .catch(() => setAdminOrderCount(0))
+        }
+
+        refreshOrderCount()
+        const refreshTimer = window.setInterval(refreshOrderCount, 5000)
+        window.addEventListener('focus', refreshOrderCount)
+        window.addEventListener('storage', refreshOrderCount)
+        return () => {
+            window.clearInterval(refreshTimer)
+            window.removeEventListener('focus', refreshOrderCount)
+            window.removeEventListener('storage', refreshOrderCount)
+        }
     }, [isAdmin])
 
     const handleCartClick = () => {

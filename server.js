@@ -125,9 +125,9 @@ const fulfillPaymentIntent = async intentId => {
 
     const order = {
         id: Date.now().toString(), userId: null, username: metadata.customerName,
-        email: metadata.customerEmail, address: metadata.customerAddress, items,
-        total: items.reduce((sum, item) => sum + priceInSmallestUnit(item.price), 0) / 100,
-        status: 'Purchased', paymentStatus: 'Paid', paymentIntentId: intent.id,
+        email: metadata.customerEmail, phone: metadata.customerPhone || '', address: metadata.customerAddress,
+        items, total: items.reduce((sum, item) => sum + priceInSmallestUnit(item.price), 0) / 100,
+        status: 'Order confirmed', paymentStatus: 'Paid', paymentIntentId: intent.id,
         createdAt: new Date().toISOString()
     }
     orders.push(order)
@@ -228,6 +228,7 @@ app.post('/api/payment-intents', async (req, res) => {
         const { items, customer = {} } = req.body
         const customerEmail = String(customer.email || '').trim().toLowerCase()
         const customerName = String(customer.name || '').trim()
+        const customerPhone = String(customer.phone || '').trim()
         const customerAddress = String(customer.address || '').trim()
         if (!payMongoSecretKey) {
             return res.status(503).json({ error: 'PayMongo is not configured on the server. Add PAYMONGO_SECRET_KEY to the hosting environment.' })
@@ -235,8 +236,8 @@ app.post('/api/payment-intents', async (req, res) => {
         if (!Array.isArray(items) || items.length === 0) {
             return res.status(400).json({ error: 'Your cart is empty. Add at least one item before paying.' })
         }
-        if (!customerName || !customerEmail || !customerAddress) {
-            return res.status(400).json({ error: 'Name, email and address are required before paying.' })
+        if (!customerName || !customerEmail || !customerPhone || !customerAddress) {
+            return res.status(400).json({ error: 'Name, email, phone number, and address are required before paying.' })
         }
 
         const products = readProducts()
@@ -255,7 +256,7 @@ app.post('/api/payment-intents', async (req, res) => {
                         currency: 'PHP',
                         payment_method_allowed: ['gcash', 'paymaya', 'grab_pay', 'qrph'],
                         description: `Clyd2e order for ${customerName}`,
-                        metadata: { customerName, customerEmail, customerAddress, productIds: paymentItems.map(item => item.id).join(',') }
+                        metadata: { customerName, customerEmail, customerPhone, customerAddress, productIds: paymentItems.map(item => item.id).join(',') }
                     }
                 }
             })
@@ -288,10 +289,11 @@ app.post('/api/checkout-session', async (req, res) => {
 
         const customerEmail = String(customer.email || '').trim().toLowerCase()
         const customerName = String(customer.name || '').trim()
+        const customerPhone = String(customer.phone || '').trim()
         const customerAddress = String(customer.address || '').trim()
 
-        if (!Array.isArray(items) || items.length === 0 || !customerName || !customerEmail || !customerAddress) {
-            return res.status(400).json({ error: 'Items, name, email and address are required' })
+        if (!Array.isArray(items) || items.length === 0 || !customerName || !customerEmail || !customerPhone || !customerAddress) {
+            return res.status(400).json({ error: 'Items, name, email, phone number, and address are required' })
         }
 
         if (!payMongoSecretKey) {
@@ -321,7 +323,7 @@ app.post('/api/checkout-session', async (req, res) => {
                         description: `Clyd2e order for ${customerName}`,
                         success_url: `${frontendUrl}/cart?payment=success`,
                         cancel_url: `${frontendUrl}/cart?payment=cancelled`,
-                        metadata: { customerName, customerEmail, customerAddress, productIds: checkoutItems.map(item => item.id).join(',') }
+                        metadata: { customerName, customerEmail, customerPhone, customerAddress, productIds: checkoutItems.map(item => item.id).join(',') }
                     }
                 }
             })
@@ -381,10 +383,11 @@ app.post('/api/orders/complete', async (req, res) => {
             userId: null,
             username: metadata.customerName,
             email: metadata.customerEmail,
+            phone: metadata.customerPhone || '',
             address: metadata.customerAddress,
             items,
             total: items.reduce((sum, item) => sum + priceInSmallestUnit(item.price), 0) / 100,
-            status: 'Purchased',
+            status: 'Order confirmed',
             paymentStatus: 'Paid',
             createdAt: new Date().toISOString(),
             paymentSessionId: session.id

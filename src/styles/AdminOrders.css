@@ -6,6 +6,34 @@
     padding: 56px 24px 64px;
 }
 
+.admin-order-tab-group {
+    display: flex;
+    gap: 12px;
+    margin: 0 0 24px;
+    flex-wrap: wrap;
+}
+
+.admin-order-tab-button {
+    padding: 10px 16px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font-weight: 600;
+    transition: all 0.15s ease;
+}
+
+.admin-order-tab-button.active {
+    border-color: var(--ink);
+    background: var(--ink);
+    color: var(--surface);
+}
+
+.admin-order-tab-button:last-child {
+    margin-left: auto;
+}
+
 .admin-orders-header {
     display: flex;
     align-items: end;
@@ -96,6 +124,31 @@
     background: var(--line);
     color: var(--muted);
     cursor: default;
+}
+
+.pending-order-actions {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 18px;
+}
+
+.pending-order-actions .complete-order-button {
+    margin-top: 0;
+}
+
+.refund-order-button {
+    padding: 10px 14px;
+    border: 1px solid #a6322d;
+    border-radius: var(--radius);
+    background: transparent;
+    color: #a6322d;
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.refund-order-button:hover {
+    background: rgba(166, 50, 45, 0.08);
 }
 
 .completed-order-actions {

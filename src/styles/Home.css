@@ -840,10 +840,6 @@ a:focus-visible {
         gap: 10px;
     }
 
-    .shipping-button {
-        display: none;
-    }
-
     .store-logo {
         min-width: 0;
         flex: 1;
@@ -952,10 +948,6 @@ body.mobile-view .store-logo {
     overflow: hidden;
     font-size: 14px;
     text-overflow: ellipsis;
-}
-
-body.mobile-view .shipping-button {
-    display: none;
 }
 
 body.mobile-view .nav-icon-button,

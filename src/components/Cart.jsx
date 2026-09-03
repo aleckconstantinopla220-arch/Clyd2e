@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
-import { ADMIN_EMAIL, API_BASE_URL, formatPrice, parsePrice, saveCart } from '../config'
+import { ADMIN_EMAIL, API_BASE_URL, formatPrice, parsePrice, saveCart, savePurchasedOrder } from '../config'
 import '../styles/Home.css'
 import '../styles/Cart.css'
 
@@ -14,6 +14,10 @@ export default function Cart() {
     const [selectedOrder, setSelectedOrder] = useState(null)
     const [purchaseMessage, setPurchaseMessage] = useState('')
     const [isPurchasing, setIsPurchasing] = useState(false)
+    const [selectedPurchaseType, setSelectedPurchaseType] = useState(() => {
+        const params = new URLSearchParams(window.location.search)
+        return params.get('purchaseType') === 'preorder' ? 'preorder' : 'regular'
+    })
     const user = JSON.parse(localStorage.getItem('user') || '{}')
     const isAdmin = user.email?.toLowerCase() === ADMIN_EMAIL
 
@@ -39,13 +43,7 @@ export default function Cart() {
                 return result.order
             })
             .then(order => {
-                const previousOrders = JSON.parse(localStorage.getItem('orders') || '[]')
-                const newItems = order.items.map(item => ({
-                    ...item, orderId: order.id, username: order.username, email: order.email,
-                    address: order.address, status: order.status, paymentStatus: order.paymentStatus, createdAt: order.createdAt
-                }))
-                const ordersWithoutCurrent = previousOrders.filter(item => item.orderId !== order.id)
-                localStorage.setItem('orders', JSON.stringify([...ordersWithoutCurrent, ...newItems]))
+                savePurchasedOrder(order)
                 localStorage.removeItem('cart')
                 localStorage.removeItem('paymongo-session-id')
                 setCart([])
@@ -79,13 +77,23 @@ export default function Cart() {
         })
     }
 
+    const hasPreOrderItems = cart.some(item => item.preOrderOnly)
+    const hasRegularItems = cart.some(item => !item.preOrderOnly)
+    const purchaseTabs = []
+    if (hasRegularItems) purchaseTabs.push({ key: 'regular', label: 'Purchase' })
+    if (hasPreOrderItems) purchaseTabs.push({ key: 'preorder', label: 'Pre-order Purchase' })
+
     const cartTotal = cart.reduce((total, product) => total + parsePrice(product.price), 0)
-    const groupedCart = Object.values(cart.reduce((groups, product) => {
+    const visibleCartItems = selectedPurchaseType === 'preorder'
+        ? cart.filter(item => item.preOrderOnly)
+        : cart.filter(item => !item.preOrderOnly)
+    const groupedCart = Object.values(visibleCartItems.reduce((groups, product) => {
         const key = String(product.id)
         if (!groups[key]) groups[key] = { ...product, quantity: 0 }
         groups[key].quantity += 1
         return groups
     }, {}))
+    const visibleCartTotal = visibleCartItems.reduce((total, product) => total + parsePrice(product.price), 0)
     const orderedGroups = orderedItems.reduce((groups, item) => {
         const orderKey = item.orderId || item.id
         if (!groups[orderKey]) {
@@ -96,11 +104,16 @@ export default function Cart() {
     }, {})
 
     const handlePurchase = () => {
-        if (cart.length === 0 || isPurchasing) {
-            setPurchaseMessage('Please add an item before purchasing.')
+        const selectedTabItems = selectedPurchaseType === 'preorder'
+            ? cart.filter(item => item.preOrderOnly)
+            : cart.filter(item => !item.preOrderOnly)
+
+        if (selectedTabItems.length === 0 || isPurchasing) {
+            setPurchaseMessage(selectedPurchaseType === 'preorder' ? 'Please add a pre-order item before purchasing.' : 'Please add an item before purchasing.')
             return
         }
-        navigate('/payment')
+
+        navigate(`/payment?purchaseType=${selectedPurchaseType}`)
     }
 
     return (
@@ -159,6 +172,22 @@ export default function Cart() {
                         </>
                     ) : (
                         <>
+                            {purchaseTabs.length > 1 && (
+                                <div className="purchase-tabs" role="tablist" aria-label="Purchase type tabs">
+                                    {purchaseTabs.map(tab => (
+                                        <button
+                                            key={tab.key}
+                                            type="button"
+                                            role="tab"
+                                            className={`purchase-tab ${selectedPurchaseType === tab.key ? 'active' : ''}`}
+                                            aria-selected={selectedPurchaseType === tab.key}
+                                            onClick={() => setSelectedPurchaseType(tab.key)}
+                                        >
+                                            {tab.label}
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                             <section className="cart-items" aria-label="Purchased items">
                                 {groupedCart.map(product => (
                                     <article className="cart-item" key={product.id}>
@@ -182,7 +211,7 @@ export default function Cart() {
                                                 <span className="product-price">{formatPrice(product.price)}</span>
                                                 <button type="button" className="remove-item-button" onClick={() => {
                                                     setCart(currentCart => {
-                                                        const updatedCart = currentCart.filter(item => item.id !== product.id)
+                                                        const updatedCart = currentCart.filter(item => item.id !== product.id || item.preOrderOnly !== product.preOrderOnly)
                                                         saveCart(updatedCart)
                                                         return updatedCart
                                                     })
@@ -195,10 +224,10 @@ export default function Cart() {
                                 ))}
                             </section>
                             <footer className="cart-summary">
-                                <span>Total: {formatPrice(cartTotal)}</span>
+                                <span>Total: {formatPrice(visibleCartTotal)}</span>
                                 {purchaseMessage && <p className="purchase-message" role="alert">{purchaseMessage}</p>}
                                 <button type="button" className="purchase-button" onClick={handlePurchase} disabled={isPurchasing}>
-                                    Purchase
+                                    {selectedPurchaseType === 'preorder' ? 'Purchase Pre-Order' : 'Purchase'}
                                 </button>
                             </footer>
                         </>
