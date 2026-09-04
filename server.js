@@ -145,14 +145,19 @@ const sendOrderNotification = async order => {
     const itemNames = order.items.map(item => `<li>${escapeHtml(item.name)}</li>`).join('')
     const itemText = order.items.map(item => `* ${item.name}`).join('\n')
     const subject = `Clyd2e order #${order.id} confirmation`
-    const html = `<p>Hello,</p><p>A purchase has been made by ${escapeHtml(order.username)} (${escapeHtml(order.email)}).</p><p>Order #${escapeHtml(order.id)}</p><ul>${itemNames}</ul><p>Total: ${formatMoney(order.total)}</p>`
-    const text = `Hello,\nA purchase has been made by ${order.username} (${order.email}).\nOrder #${order.id}\n${itemText}\nTotal: ${formatMoney(order.total)}`
+    const proofOfPayment = order.proofOfPayment?.dataUrl
+    const proofContentId = `proof-of-payment-${order.id}`
+    const proofHtml = proofOfPayment ? `<p><strong>Proof of payment:</strong></p><p><img src="cid:${proofContentId}" alt="Proof of payment" style="max-width:600px;width:100%;height:auto"></p>` : ''
+    const proofText = proofOfPayment ? '\nProof of payment is attached to this email.' : ''
+    const html = `<p>Hello,</p><p>A purchase has been made by ${escapeHtml(order.username)} (${escapeHtml(order.email)}).</p><p>Order #${escapeHtml(order.id)}</p><ul>${itemNames}</ul><p>Total: ${formatMoney(order.total)}</p>${proofHtml}`
+    const text = `Hello,\nA purchase has been made by ${order.username} (${order.email}).\nOrder #${order.id}\n${itemText}\nTotal: ${formatMoney(order.total)}${proofText}`
+    const attachments = proofOfPayment ? [{ filename: order.proofOfPayment.name || 'proof-of-payment', content: proofOfPayment.split(',')[1], content_id: proofContentId }] : []
 
     try {
         const response = await fetch('https://api.resend.com/emails', {
             method: 'POST',
             headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
-            body: JSON.stringify({ from: resendFrom, to: [ADMIN_EMAIL], subject, html, text })
+            body: JSON.stringify({ from: resendFrom, to: [ADMIN_EMAIL], subject, html, text, attachments })
         })
         if (!response.ok) {
             const result = await response.json().catch(() => ({}))
