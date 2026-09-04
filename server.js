@@ -639,7 +639,16 @@ app.get('/api/orders', (req, res) => {
             return res.status(401).json({ error: 'Unauthorized: Admin access required' })
         }
 
-        res.status(200).json(readOrders())
+        const orders = readOrders().map(order => ({
+            ...order,
+            items: order.items.map(item => {
+                if (!item.image?.startsWith('data:')) return item
+                const { image, ...itemWithoutImage } = item
+                return itemWithoutImage
+            }),
+            ...(order.proofOfPayment ? { proofOfPayment: { name: order.proofOfPayment.name } } : {})
+        }))
+        res.status(200).json(orders)
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch orders' })
     }
@@ -657,6 +666,22 @@ app.get('/api/orders/:id/status', (req, res) => {
         res.status(200).json({ id: order.id, status: order.status })
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch order status' })
+    }
+})
+
+// Read one complete order for the admin details dialog.
+app.get('/api/orders/:id', (req, res) => {
+    try {
+        const { adminId, adminEmail } = req.query
+        if (!isAuthorizedAdmin(readUsers(), adminId, adminEmail)) {
+            return res.status(401).json({ error: 'Unauthorized: Admin access required' })
+        }
+
+        const order = readOrders().find(existingOrder => existingOrder.id === req.params.id)
+        if (!order) return res.status(404).json({ error: 'Order not found' })
+        res.status(200).json(order)
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch order' })
     }
 })
 

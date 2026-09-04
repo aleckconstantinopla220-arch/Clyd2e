@@ -44,14 +44,18 @@
 
 .order-count,
 .order-user,
-.order-date {
+.order-date,
+.order-address,
+.order-address-detail {
     font-family: var(--font-mono);
     font-size: 11px;
     text-transform: uppercase;
 }
 
 .order-count,
-.order-date {
+.order-date,
+.order-address,
+.order-address-detail {
     color: var(--muted);
 }
 
@@ -103,6 +107,11 @@
     box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
     outline: none;
     transform: translateY(-2px);
+}
+
+.admin-order-card.archived {
+    background: #f0f0ed;
+    border-style: dashed;
 }
 
 .admin-order-heading {

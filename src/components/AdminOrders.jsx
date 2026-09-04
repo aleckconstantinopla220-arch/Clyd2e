@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import * as XLSX from 'xlsx'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
 import { ADMIN_EMAIL, API_BASE_URL, formatPrice } from '../config'
@@ -29,7 +28,12 @@ export default function AdminOrders() {
 
         fetch(`${API_BASE_URL}/api/orders?adminId=${encodeURIComponent(adminId)}&adminEmail=${encodeURIComponent(user.email || '')}`)
             .then(response => response.ok ? response.json() : Promise.reject(new Error(`Unable to load orders (${response.status})`)))
-            .then(setOrders)
+            .then(nextOrders => {
+                setOrders(nextOrders)
+                const hasPendingRegularOrder = nextOrders.some(order => ['Order confirmed', 'Purchased'].includes(order.status) && !isPreOrderOrder(order))
+                const hasPendingPreOrder = nextOrders.some(order => isPreOrderOrder(order) && pendingPreOrderStatuses.includes(order.status))
+                if (!hasPendingRegularOrder && hasPendingPreOrder) setActiveTab('preorder')
+            })
             .catch(error => setError(error.message || 'Unable to load orders. Please check the server.'))
     }, [navigate, adminId, isAdmin])
 
@@ -51,11 +55,23 @@ export default function AdminOrders() {
                 'Phone Number': order.phone || '',
                 'Order Number': order.id
             }))
-        const worksheet = XLSX.utils.json_to_sheet(rows, { header: ['Name', 'Email', 'Items', 'Phone Number', 'Order Number'] })
-        worksheet['!cols'] = [{ wch: 28 }, { wch: 32 }, { wch: 48 }, { wch: 18 }, { wch: 18 }]
-        const workbook = XLSX.utils.book_new()
-        XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders')
-        XLSX.writeFile(workbook, `clyd2e-orders-${new Date().toISOString().slice(0, 10)}.xlsx`)
+        import('xlsx').then(XLSX => {
+            const worksheet = XLSX.utils.json_to_sheet(rows, { header: ['Name', 'Email', 'Items', 'Phone Number', 'Order Number'] })
+            worksheet['!cols'] = [{ wch: 28 }, { wch: 32 }, { wch: 48 }, { wch: 18 }, { wch: 18 }]
+            const workbook = XLSX.utils.book_new()
+            XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders')
+            XLSX.writeFile(workbook, `clyd2e-orders-${new Date().toISOString().slice(0, 10)}.xlsx`)
+        })
+    }
+
+    const openOrderDetails = async order => {
+        setSelectedOrder(order)
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/orders/${encodeURIComponent(order.id)}?adminId=${encodeURIComponent(adminId)}&adminEmail=${encodeURIComponent(user.email || '')}`)
+            if (response.ok) setSelectedOrder(await response.json())
+        } catch (error) {
+            setError('Unable to load order details.')
+        }
     }
 
     const updateOrderStatus = (orderId, status) => {
@@ -105,6 +121,15 @@ export default function AdminOrders() {
             || /pre[- ]?order/i.test(status)
     }
 
+    const isCompletionOrder = order => order.status === 'Completion listed' || (order.status === 'Completed' && isPreOrderOrder(order))
+    const isArchivedCompletion = order => {
+        const completedAt = new Date(order.createdAt || 0)
+        if (Number.isNaN(completedAt.getTime())) return false
+        const archiveDate = new Date(completedAt)
+        archiveDate.setMonth(archiveDate.getMonth() + 1)
+        return archiveDate <= new Date()
+    }
+
     const [activeTab, setActiveTab] = useState('pending')
     const visibleOrders = [...orders]
         .filter(order => {
@@ -112,8 +137,9 @@ export default function AdminOrders() {
             if (activeTab === 'pending') return ['Order confirmed', 'Purchased'].includes(order.status) && !isPreOrderOrder(order)
             if (activeTab === 'shipping') return order.status === 'Order completed' && !isPreOrderOrder(order)
             if (activeTab === 'completed') return ['Completed', 'Shipped'].includes(order.status) && !isPreOrderOrder(order)
-            if (activeTab === 'completion-list') return order.status === 'Completion listed' || (order.status === 'Completed' && isPreOrderOrder(order))
+            if (activeTab === 'completion-list') return isCompletionOrder(order) && !isArchivedCompletion(order)
             if (activeTab === 'refunded') return order.status === 'Refunded'
+            if (activeTab === 'archived') return isCompletionOrder(order) && isArchivedCompletion(order)
             return true
         })
         .sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0))
@@ -151,6 +177,12 @@ export default function AdminOrders() {
                             {activeTab === 'preorder' && <button type="button" className="download-orders-button" onClick={downloadOrdersExcel} disabled={visibleOrders.length === 0}>
                                 Download Excel
                             </button>}
+                            {activeTab === 'completion-list' && <button type="button" className="download-orders-button" onClick={() => setActiveTab('archived')}>
+                                Archived
+                            </button>}
+                            {activeTab === 'archived' && <button type="button" className="download-orders-button" onClick={() => setActiveTab('completion-list')}>
+                                Completion List
+                            </button>}
                         </div>
                     </header>
 
@@ -174,15 +206,15 @@ export default function AdminOrders() {
                         <section className="admin-order-list" aria-label="Customer orders by status">
                             {visibleOrders.map(order => (
                                 <article
-                                    className="admin-order-card"
+                                    className={`admin-order-card ${activeTab === 'archived' ? 'archived' : ''}`}
                                     key={order.id}
                                     role="button"
                                     tabIndex="0"
-                                    onClick={() => setSelectedOrder(order)}
+                                    onClick={() => openOrderDetails(order)}
                                     onKeyDown={event => {
                                         if (event.key === 'Enter' || event.key === ' ') {
                                             event.preventDefault()
-                                            setSelectedOrder(order)
+                                            openOrderDetails(order)
                                         }
                                     }}
                                 >
