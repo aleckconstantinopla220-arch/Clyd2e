@@ -18,6 +18,8 @@ const CATEGORIES_DB = path.join(__dirname, 'categories.json')
 const ORDERS_DB = process.env.ORDERS_DB_PATH || path.join(__dirname, 'orders.json')
 const payMongoSecretKey = process.env.PAYMONGO_SECRET_KEY
 const payMongoWebhookSecret = process.env.PAYMONGO_WEBHOOK_SECRET
+const resendApiKey = process.env.RESEND_API_KEY
+const resendFrom = process.env.RESEND_FROM || 'Clyd2e Orders <onboarding@resend.dev>'
 const PAYMONGO_CREATE_URL = 'https://api.paymongo.com/v2/checkout_sessions'
 const PAYMONGO_RETRIEVE_URL = 'https://api.paymongo.com/v1/checkout_sessions'
 
@@ -133,6 +135,35 @@ const payMongoHeaders = () => ({
     'Content-Type': 'application/json'
 })
 
+const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, character => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' })[character])
+const sendOrderNotification = async order => {
+    if (!resendApiKey) {
+        console.warn('RESEND_API_KEY is not configured; skipping order notification email')
+        return
+    }
+
+    const itemNames = order.items.map(item => `<li>${escapeHtml(item.name)}</li>`).join('')
+    const itemText = order.items.map(item => `* ${item.name}`).join('\n')
+    const subject = `Clyd2e order #${order.id} confirmation`
+    const html = `<p>Hello,</p><p>A purchase has been made by ${escapeHtml(order.username)} (${escapeHtml(order.email)}).</p><p>Order #${escapeHtml(order.id)}</p><ul>${itemNames}</ul><p>Total: ${formatMoney(order.total)}</p>`
+    const text = `Hello,\nA purchase has been made by ${order.username} (${order.email}).\nOrder #${order.id}\n${itemText}\nTotal: ${formatMoney(order.total)}`
+
+    try {
+        const response = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: { Authorization: `Bearer ${resendApiKey}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ from: resendFrom, to: [ADMIN_EMAIL], subject, html, text })
+        })
+        if (!response.ok) {
+            const result = await response.json().catch(() => ({}))
+            console.error('Failed to send order notification email:', result.message || response.statusText)
+        }
+    } catch (error) {
+        console.error('Failed to send order notification email:', error.message)
+    }
+}
+const formatMoney = value => `₱${Number(value || 0).toFixed(2)}`
+
 const fulfillPaymentIntent = async intentId => {
     if (!payMongoSecretKey) throw new Error('PayMongo is not configured on the server')
     const response = await fetch(`https://api.paymongo.com/v1/payment_intents/${encodeURIComponent(intentId)}`, { headers: payMongoHeaders() })
@@ -161,6 +192,7 @@ const fulfillPaymentIntent = async intentId => {
     orders.push(order)
     writeOrders(orders)
     writeProducts(decrementStock(products, productIds))
+    await sendOrderNotification(order)
     return order
 }
 
@@ -333,7 +365,7 @@ app.delete('/api/categories/:name', (req, res) => {
 })
 
 // Record a GCash pre-order without sending it through PayMongo.
-app.post('/api/preorders', (req, res) => {
+app.post('/api/preorders', async (req, res) => {
     try {
         const { items, customer = {}, paymentMethod, proofOfPayment } = req.body
         const customerEmail = String(customer.email || '').trim().toLowerCase()
@@ -365,6 +397,7 @@ app.post('/api/preorders', (req, res) => {
         const orders = readOrders()
         orders.push(order)
         writeOrders(orders)
+        await sendOrderNotification(order)
         return res.status(201).json({ order })
     } catch (error) {
         console.error('Failed to create pre-order:', error)
@@ -549,6 +582,7 @@ app.post('/api/orders/complete', async (req, res) => {
         orders.push(order)
         writeOrders(orders)
         writeProducts(decrementStock(products, productIds))
+        await sendOrderNotification(order)
 
         res.status(201).json({ message: 'Order created successfully', order })
     } catch (error) {
@@ -774,7 +808,7 @@ app.delete('/api/products/:id', (req, res) => {
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {
-    res.status(200).json({ message: 'Server is running' })
+    res.status(200).json({ message: 'Server is running', emailNotificationsConfigured: Boolean(resendApiKey) })
 })
 
 if (process.env.NODE_ENV === 'production') {
@@ -785,4 +819,5 @@ if (process.env.NODE_ENV === 'production') {
 
 app.listen(PORT, () => {
     console.log(`Server running on http://localhost:${PORT}`)
+    if (!resendApiKey) console.warn('Order emails are disabled: set RESEND_API_KEY in .env and restart the server')
 })
