@@ -113,7 +113,7 @@ button {
 .nav-right {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 8px;
     margin-left: auto;
 }
 
@@ -155,17 +155,23 @@ button {
     position: relative;
     display: grid;
     place-items: center;
-    width: 36px;
-    height: 36px;
-    border: none;
+    width: 40px;
+    height: 40px;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
     background: transparent;
     color: var(--muted);
     cursor: pointer;
-    transition: color 0.15s ease;
+    transition: color 0.15s ease, border-color 0.15s ease, background-color 0.15s ease, transform 0.15s ease;
 }
 
-.nav-icon-button:hover {
+.nav-icon-button:hover,
+.nav-icon-button:focus-visible {
+    border-color: var(--line);
+    background: var(--bg);
     color: var(--ink);
+    outline: none;
+    transform: translateY(-1px);
 }
 
 .user-icon {
@@ -257,12 +263,15 @@ button {
 }
 
 .cart-icon::after {
-    content: '••';
+    content: '';
     position: absolute;
-    bottom: -8px;
-    left: 4px;
-    font-size: 12px;
-    letter-spacing: 5px;
+    bottom: -6px;
+    left: 3px;
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: currentColor;
+    box-shadow: 10px 0 0 currentColor;
 }
 
 .cart-count {

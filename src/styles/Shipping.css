@@ -109,6 +109,24 @@
     color: #a6322d;
 }
 
+.shipping-order-type-tag {
+    display: inline-block;
+    align-self: flex-start;
+    margin-top: 16px;
+    padding: 5px 8px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    color: var(--muted);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+}
+
+.shipping-order-type-tag.preorder {
+    border-color: #a06a2c;
+    color: #a06a2c;
+}
+
 .shipping-status-bar {
     height: 7px;
     margin-top: 18px;

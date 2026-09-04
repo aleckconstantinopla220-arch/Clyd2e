@@ -20,20 +20,19 @@
 .add-product-tabs {
     display: flex;
     flex-wrap: wrap;
-    gap: 8px;
-    margin-top: 36px;
+    gap: 12px;
+    margin: 36px 0 0;
 }
 
 .add-product-tabs button {
     padding: 10px 16px;
     border: 1px solid var(--line);
-    border-radius: var(--radius);
+    border-radius: 999px;
     background: transparent;
     color: var(--muted);
     cursor: pointer;
-    font-family: var(--font-mono);
-    font-size: 11px;
-    text-transform: uppercase;
+    font-weight: 600;
+    transition: all 0.15s ease;
 }
 
 .add-product-tabs button.active,
@@ -150,6 +149,38 @@
     margin-top: 48px;
 }
 
+.managed-categories {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+}
+
+.managed-categories h2 {
+    margin-bottom: 16px;
+    font-family: var(--font-display);
+    font-size: 24px;
+}
+
+.managed-category {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 0;
+    border-top: 1px solid var(--line);
+}
+
+.managed-category input {
+    min-width: 0;
+    flex: 1;
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--ink);
+    font: inherit;
+}
+
 .managed-products h2 {
     margin-bottom: 16px;
     font-family: var(--font-display);
@@ -241,6 +272,10 @@
         margin-top: 36px;
     }
 
+    .managed-categories {
+        margin-top: 36px;
+    }
+
     .managed-products h2 {
         font-size: 20px;
     }
@@ -274,5 +309,11 @@
         min-height: 34px;
         padding: 7px 5px;
         font-size: 10px;
+    }
+
+    .managed-category {
+        align-items: stretch;
+        flex-direction: column;
+        gap: 8px;
     }
 }

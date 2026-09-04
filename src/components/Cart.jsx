@@ -79,6 +79,12 @@ export default function Cart() {
 
     const hasPreOrderItems = cart.some(item => item.preOrderOnly)
     const hasRegularItems = cart.some(item => !item.preOrderOnly)
+
+    useEffect(() => {
+        if (selectedPurchaseType === 'regular' && !hasRegularItems && hasPreOrderItems) setSelectedPurchaseType('preorder')
+        if (selectedPurchaseType === 'preorder' && !hasPreOrderItems && hasRegularItems) setSelectedPurchaseType('regular')
+    }, [hasPreOrderItems, hasRegularItems, selectedPurchaseType])
+
     const purchaseTabs = []
     if (hasRegularItems) purchaseTabs.push({ key: 'regular', label: 'Purchase' })
     if (hasPreOrderItems) purchaseTabs.push({ key: 'preorder', label: 'Pre-order Purchase' })
@@ -114,6 +120,18 @@ export default function Cart() {
         }
 
         navigate(`/payment?purchaseType=${selectedPurchaseType}`)
+    }
+
+    const removeCartProduct = product => {
+        setCart(currentCart => {
+            const updatedCart = currentCart.filter(item => item.id !== product.id || item.preOrderOnly !== product.preOrderOnly)
+            const hasPreOrderItemsAfterRemoval = updatedCart.some(item => item.preOrderOnly)
+            const hasRegularItemsAfterRemoval = updatedCart.some(item => !item.preOrderOnly)
+            if (selectedPurchaseType === 'preorder' && !hasPreOrderItemsAfterRemoval && hasRegularItemsAfterRemoval) setSelectedPurchaseType('regular')
+            if (selectedPurchaseType === 'regular' && !hasRegularItemsAfterRemoval && hasPreOrderItemsAfterRemoval) setSelectedPurchaseType('preorder')
+            saveCart(updatedCart)
+            return updatedCart
+        })
     }
 
     return (
@@ -209,13 +227,7 @@ export default function Cart() {
                                             </div>
                                             <div className="cart-item-footer">
                                                 <span className="product-price">{formatPrice(product.price)}</span>
-                                                <button type="button" className="remove-item-button" onClick={() => {
-                                                    setCart(currentCart => {
-                                                        const updatedCart = currentCart.filter(item => item.id !== product.id || item.preOrderOnly !== product.preOrderOnly)
-                                                        saveCart(updatedCart)
-                                                        return updatedCart
-                                                    })
-                                                }}>
+                                                <button type="button" className="remove-item-button" onClick={() => removeCartProduct(product)}>
                                                     Remove
                                                 </button>
                                             </div>

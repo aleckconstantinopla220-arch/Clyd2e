@@ -90,6 +90,7 @@ export default function Shipping() {
         const progress = getOrderProgress(order)
         return progress === 'completed' ? 'Completed' : progress === 'shipping' ? 'Shipping' : progress === 'refunded' ? 'Refunded' : 'Pending'
     }
+    const isPreOrder = order => order.items.some(item => item.preOrderOnly === true)
     const visibleOrders = sortedOrders.filter(order => getOrderProgress(order) === activeTab)
 
     const handleLogout = () => {
@@ -138,6 +139,9 @@ export default function Shipping() {
                                         </div>
                                         <span className={`shipping-status-tag ${getOrderProgress(order)}`}>{getProgressLabel(order)}</span>
                                     </div>
+                                    <span className={`shipping-order-type-tag ${isPreOrder(order) ? 'preorder' : 'regular'}`}>
+                                        {isPreOrder(order) ? 'Pre-Order' : 'Regular Purchase'}
+                                    </span>
                                     <div className="shipping-order-footer">
                                         <span>{order.items.length} item{order.items.length === 1 ? '' : 's'}</span>
                                         <strong>Total: {formatPrice(order.items.reduce((total, item) => total + parsePrice(item.price), 0))}</strong>
@@ -178,6 +182,9 @@ export default function Shipping() {
                             </div>)}
                         </div>
                         <div className="shipping-modal-summary"><span className={`shipping-status-tag ${getOrderProgress(selectedOrder)}`}>{getProgressLabel(selectedOrder)}</span><strong>Total: {formatPrice(selectedOrder.items.reduce((total, item) => total + parsePrice(item.price), 0))}</strong></div>
+                        <span className={`shipping-order-type-tag ${isPreOrder(selectedOrder) ? 'preorder' : 'regular'}`}>
+                            {isPreOrder(selectedOrder) ? 'Pre-Order' : 'Regular Purchase'}
+                        </span>
                         <div className={`shipping-status-bar ${getOrderProgress(selectedOrder)}`} aria-label={`${getProgressLabel(selectedOrder)} order progress`}><span className="shipping-status-bar-fill" /></div>
                         <p className="shipping-status-label">{getProgressLabel(selectedOrder)}</p>
                     </section>

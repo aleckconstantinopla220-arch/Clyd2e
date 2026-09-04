@@ -173,7 +173,7 @@ export default function AdminOrders() {
                                         <span>{order.items.length} item{order.items.length === 1 ? '' : 's'}</span>
                                         <strong>Total: {formatPrice(order.total)}</strong>
                                     </div>
-                                    {order.address && <p className="order-address">Ship to: {order.address}</p>}
+                                    {order.address && !isPreOrderOrder(order) && <p className="order-address">Ship to: {order.address}</p>}
                                     {order.phone && <p className="order-address">Phone: {order.phone}</p>}
                                     {activeTab === 'refunded' || activeTab === 'completion-list' ? null : activeTab === 'preorder' ? (
                                         <div className="pending-order-actions">
@@ -271,6 +271,15 @@ export default function AdminOrders() {
                             <span>{selectedOrder.status}</span>
                             <strong>Total: {formatPrice(selectedOrder.total)}</strong>
                         </div>
+                        {selectedOrder.proofOfPayment?.dataUrl && selectedOrder.items.some(item => item.preOrderOnly === true) && (
+                            <div className="order-proof">
+                                <h3>Proof of Payment</h3>
+                                <a href={selectedOrder.proofOfPayment.dataUrl} target="_blank" rel="noreferrer" aria-label="Open proof of payment">
+                                    <img src={selectedOrder.proofOfPayment.dataUrl} alt="Proof of payment" />
+                                </a>
+                                <span>{selectedOrder.proofOfPayment.name || 'View payment proof'}</span>
+                            </div>
+                        )}
                     </section>
                 </div>
             )}

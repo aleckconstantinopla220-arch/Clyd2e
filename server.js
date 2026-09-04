@@ -279,7 +279,100 @@ app.post('/api/categories', (req, res) => {
     }
 })
 
-// Create a Payment Intent for the custom payment page.
+app.put('/api/categories/:name', (req, res) => {
+    try {
+        const { name: nextName, adminId } = req.body
+        const users = readUsers()
+        const admin = users.find(user => user.id === adminId && isAdminUser(user))
+        const currentName = String(req.params.name || '').trim()
+        const category = String(nextName || '').trim().toUpperCase()
+        if (!admin) return res.status(401).json({ error: 'Unauthorized: Admin access required' })
+        if (!category) return res.status(400).json({ error: 'Category name is required' })
+
+        const categories = readCategories()
+        const categoryIndex = categories.findIndex(existingCategory => existingCategory.toLowerCase() === currentName.toLowerCase())
+        if (categoryIndex === -1) return res.status(404).json({ error: 'Category not found' })
+        if (categories.some((existingCategory, index) => index !== categoryIndex && existingCategory.toLowerCase() === category.toLowerCase())) {
+            return res.status(409).json({ error: 'Category already exists' })
+        }
+
+        const previousName = categories[categoryIndex]
+        categories[categoryIndex] = category
+        writeCategories(categories)
+        const products = readProducts().map(product => product.category?.toLowerCase() === previousName.toLowerCase()
+            ? { ...product, category }
+            : product)
+        writeProducts(products)
+        res.status(200).json({ category, previousName })
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to update category' })
+    }
+})
+
+app.delete('/api/categories/:name', (req, res) => {
+    try {
+        const { adminId } = req.body
+        const users = readUsers()
+        const admin = users.find(user => user.id === adminId && isAdminUser(user))
+        const categoryName = String(req.params.name || '').trim()
+        if (!admin) return res.status(401).json({ error: 'Unauthorized: Admin access required' })
+
+        const categories = readCategories()
+        const category = categories.find(existingCategory => existingCategory.toLowerCase() === categoryName.toLowerCase())
+        if (!category) return res.status(404).json({ error: 'Category not found' })
+        const products = readProducts()
+        if (products.some(product => product.category?.toLowerCase() === category.toLowerCase())) {
+            return res.status(409).json({ error: 'Category cannot be deleted while products use it' })
+        }
+
+        writeCategories(categories.filter(existingCategory => existingCategory !== category))
+        res.status(200).json({ category })
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to delete category' })
+    }
+})
+
+// Record a GCash pre-order without sending it through PayMongo.
+app.post('/api/preorders', (req, res) => {
+    try {
+        const { items, customer = {}, paymentMethod, proofOfPayment } = req.body
+        const customerEmail = String(customer.email || '').trim().toLowerCase()
+        const customerName = String(customer.name || '').trim()
+        const customerPhone = String(customer.phone || '').trim()
+        const customerAddress = String(customer.address || '').trim()
+        if (paymentMethod !== 'gcash') return res.status(400).json({ error: 'Pre-orders are available through GCash only.' })
+        if (!Array.isArray(items) || items.length === 0 || !customerName || !customerEmail || !customerPhone) {
+            return res.status(400).json({ error: 'Items, name, email, and phone number are required' })
+        }
+        if (!proofOfPayment?.dataUrl || !String(proofOfPayment.dataUrl).startsWith('data:image/')) {
+            return res.status(400).json({ error: 'A valid proof of payment image is required' })
+        }
+
+        const products = readProducts()
+        const preorderItems = items.map(item => products.find(product => product.id === Number(item.id))).filter(Boolean)
+        if (preorderItems.length !== items.length || preorderItems.some(item => item.preOrderOnly !== true || priceInSmallestUnit(item.price) <= 0)) {
+            return res.status(400).json({ error: 'One or more pre-order items are no longer available' })
+        }
+
+        const order = {
+            id: Date.now().toString(), userId: null, username: customerName,
+            email: customerEmail, phone: customerPhone, address: customerAddress,
+            items: preorderItems, total: preorderItems.reduce((sum, item) => sum + priceInSmallestUnit(item.price), 0) / 100,
+            proofOfPayment: { name: String(proofOfPayment.name || 'proof-of-payment'), dataUrl: proofOfPayment.dataUrl },
+            status: 'Pre-order', paymentStatus: 'Pending', paymentMethod: 'GCash',
+            createdAt: new Date().toISOString()
+        }
+        const orders = readOrders()
+        orders.push(order)
+        writeOrders(orders)
+        return res.status(201).json({ order })
+    } catch (error) {
+        console.error('Failed to create pre-order:', error)
+        return res.status(500).json({ error: 'Unable to place pre-order' })
+    }
+})
+
+// Create a Payment Intent for the regular custom payment page.
 app.post('/api/payment-intents', async (req, res) => {
     try {
         const { items, customer = {} } = req.body

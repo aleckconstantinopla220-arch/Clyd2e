@@ -17,6 +17,8 @@ export default function AddProduct() {
     const [currentStockLimit, setCurrentStockLimit] = useState(0)
     const [categories, setCategories] = useState([])
     const [newCategory, setNewCategory] = useState('')
+    const [editingCategory, setEditingCategory] = useState(null)
+    const [editedCategoryName, setEditedCategoryName] = useState('')
     const [activePanel, setActivePanel] = useState('product')
     const [message, setMessage] = useState('')
     const fileInputRef = useRef(null)
@@ -49,6 +51,47 @@ export default function AddProduct() {
             setForm(currentForm => ({ ...currentForm, category: result.category }))
             setNewCategory('')
             setMessage(`Category ${result.category} created.`)
+        } catch (error) {
+            setMessage(error.message)
+        }
+    }
+
+    const handleUpdateCategory = async event => {
+        event.preventDefault()
+        setMessage('')
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/categories/${encodeURIComponent(editingCategory)}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: editedCategoryName, adminId })
+            })
+            const result = await response.json().catch(() => ({}))
+            if (!response.ok) throw new Error(result.error || 'Unable to update category')
+            setCategories(currentCategories => currentCategories.map(category => category === editingCategory ? result.category : category))
+            setProducts(currentProducts => currentProducts.map(product => product.category === editingCategory ? { ...product, category: result.category } : product))
+            setForm(currentForm => ({ ...currentForm, category: currentForm.category === editingCategory ? result.category : currentForm.category }))
+            setEditingCategory(null)
+            setEditedCategoryName('')
+            setMessage(`Category ${result.category} updated.`)
+        } catch (error) {
+            setMessage(error.message)
+        }
+    }
+
+    const deleteCategory = async category => {
+        if (!window.confirm(`Delete the ${category} category?`)) return
+        setMessage('')
+        try {
+            const response = await fetch(`${API_BASE_URL}/api/categories/${encodeURIComponent(category)}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ adminId })
+            })
+            const result = await response.json().catch(() => ({}))
+            if (!response.ok) throw new Error(result.error || 'Unable to delete category')
+            setCategories(currentCategories => currentCategories.filter(item => item !== category))
+            setActiveCategory(currentCategory => currentCategory === category ? 'ALL' : currentCategory)
+            setMessage(`Category ${category} deleted.`)
         } catch (error) {
             setMessage(error.message)
         }
@@ -142,11 +185,25 @@ export default function AddProduct() {
                         <button type="button" role="tab" className={activePanel === 'product' ? 'active' : ''} aria-selected={activePanel === 'product'} onClick={() => setActivePanel('product')}>Add Product</button>
                         <button type="button" role="tab" className={activePanel === 'category' ? 'active' : ''} aria-selected={activePanel === 'category'} onClick={() => setActivePanel('category')}>Create Category</button>
                     </div>
-                    {activePanel === 'category' ? <form className="add-product-form category-form" onSubmit={handleCreateCategory}>
-                        <label>Category name<input value={newCategory} onChange={event => setNewCategory(event.target.value)} placeholder="Enter category name" required /></label>
-                        {message && <p className="add-product-message" role="alert">{message}</p>}
-                        <button type="submit" className="complete-order-button">Create Category</button>
-                    </form> : <form className="add-product-form" onSubmit={handleSubmit}>
+                    {activePanel === 'category' ? <div className="add-product-form category-form">
+                        <form onSubmit={handleCreateCategory}>
+                            <label>Category name<input value={newCategory} onChange={event => setNewCategory(event.target.value)} placeholder="Enter category name" required /></label>
+                            {message && <p className="add-product-message" role="alert">{message}</p>}
+                            <button type="submit" className="complete-order-button">Create Category</button>
+                        </form>
+                        <section className="managed-categories" aria-label="Manage categories">
+                            <h2>Categories</h2>
+                            {categories.map(category => editingCategory === category ? (
+                                <form className="managed-category" key={category} onSubmit={handleUpdateCategory}>
+                                    <input aria-label={`Edit ${category} category name`} value={editedCategoryName} onChange={event => setEditedCategoryName(event.target.value)} required autoFocus />
+                                    <div className="managed-product-actions"><button type="submit">Save</button><button type="button" onClick={() => setEditingCategory(null)}>Cancel</button></div>
+                                </form>
+                            ) : <article className="managed-category" key={category}>
+                                <strong>{category}</strong>
+                                <div className="managed-product-actions"><button type="button" onClick={() => { setEditingCategory(category); setEditedCategoryName(category); setMessage('') }}>Edit</button><button type="button" onClick={() => deleteCategory(category)}>Delete</button></div>
+                            </article>)}
+                        </section>
+                    </div> : <form className="add-product-form" onSubmit={handleSubmit}>
                         <label>Name<input value={form.name} onChange={event => setForm({ ...form, name: event.target.value })} required /></label>
                         <label>Description<textarea value={form.description} onChange={event => setForm({ ...form, description: event.target.value })} rows="4" placeholder="Tell customers about this product" /></label>
                         <label>Category<select value={form.category} onChange={event => setForm({ ...form, category: event.target.value })}>{categories.map(category => <option key={category}>{category}</option>)}</select></label>

@@ -199,6 +199,10 @@
 
 .order-confirmation-dialog {
     width: min(100%, 440px);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(23, 23, 23, 0.28) transparent;
     padding: 28px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
@@ -291,11 +295,39 @@
 
 .order-modal {
     width: min(100%, 560px);
+    max-height: calc(100vh - 48px);
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(23, 23, 23, 0.28) transparent;
     padding: 28px;
     border: 1px solid var(--line);
     border-radius: var(--radius);
     background: var(--surface);
     box-shadow: 0 20px 50px rgba(0, 0, 0, 0.18);
+}
+
+.order-modal::-webkit-scrollbar,
+.order-confirmation-dialog::-webkit-scrollbar {
+    width: 8px;
+}
+
+.order-modal::-webkit-scrollbar-track,
+.order-confirmation-dialog::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.order-modal::-webkit-scrollbar-thumb,
+.order-confirmation-dialog::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: rgba(23, 23, 23, 0.28);
+    background-clip: padding-box;
+}
+
+.order-modal::-webkit-scrollbar-thumb:hover,
+.order-confirmation-dialog::-webkit-scrollbar-thumb:hover {
+    background: rgba(23, 23, 23, 0.48);
+    background-clip: padding-box;
 }
 
 .order-modal-header {
@@ -366,6 +398,42 @@
     font-family: var(--font-mono);
     font-size: 11px;
     text-transform: uppercase;
+}
+
+.order-proof {
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid var(--line);
+}
+
+.order-proof h3 {
+    margin-bottom: 12px;
+    color: var(--ink);
+    font-size: 1rem;
+}
+
+.order-proof a {
+    display: block;
+    width: min(100%, 240px);
+    aspect-ratio: 1;
+    margin: 0 auto;
+    border: 1px solid var(--line);
+    background: var(--bg);
+}
+
+.order-proof img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+}
+
+.order-proof span {
+    display: block;
+    margin-top: 8px;
+    overflow-wrap: anywhere;
+    color: var(--muted);
+    font-size: 12px;
+    text-align: center;
 }
 
 .admin-orders-message {
