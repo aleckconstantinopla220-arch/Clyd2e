@@ -11,10 +11,11 @@ const __dirname = path.dirname(__filename)
 
 const app = express()
 const PORT = process.env.PORT || 3001
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'aleckconstantinopla220@gmail.com'
+const ADMIN_EMAIL = 'aleckconstantinopla220@gmail.com'
 const USERS_DB = path.join(__dirname, 'users.json')
 const PRODUCTS_DB = path.join(__dirname, 'products.json')
 const CATEGORIES_DB = path.join(__dirname, 'categories.json')
+const EVENTS_DB = path.join(__dirname, 'events.json')
 const ORDERS_DB = process.env.ORDERS_DB_PATH || path.join(__dirname, 'orders.json')
 const payMongoSecretKey = process.env.PAYMONGO_SECRET_KEY
 const payMongoWebhookSecret = process.env.PAYMONGO_WEBHOOK_SECRET
@@ -72,6 +73,10 @@ if (!fs.existsSync(CATEGORIES_DB)) {
     fs.writeFileSync(CATEGORIES_DB, JSON.stringify(['ZINE', 'PHOTOCARD', 'INSTAX MINI', 'ACCESSORIES', 'OTHER'], null, 2))
 }
 
+if (!fs.existsSync(EVENTS_DB)) {
+    fs.writeFileSync(EVENTS_DB, JSON.stringify([]))
+}
+
 // Utility functions
 const readUsers = () => {
     const data = fs.readFileSync(USERS_DB, 'utf-8')
@@ -102,6 +107,8 @@ const writeProducts = (products) => {
 
 const readCategories = () => JSON.parse(fs.readFileSync(CATEGORIES_DB, 'utf-8') || '[]')
 const writeCategories = categories => fs.writeFileSync(CATEGORIES_DB, JSON.stringify(categories, null, 2))
+const readEvents = () => JSON.parse(fs.readFileSync(EVENTS_DB, 'utf-8') || '[]')
+const writeEvents = events => fs.writeFileSync(EVENTS_DB, JSON.stringify(events, null, 2))
 
 const readOrders = () => {
     const data = fs.readFileSync(ORDERS_DB, 'utf-8')
@@ -293,6 +300,32 @@ app.get('/api/categories', (req, res) => {
         res.status(200).json(readCategories())
     } catch (error) {
         res.status(500).json({ error: 'Failed to fetch categories' })
+    }
+})
+
+app.get('/api/events', (req, res) => {
+    try {
+        res.status(200).json(readEvents())
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to fetch events' })
+    }
+})
+
+app.post('/api/events', (req, res) => {
+    try {
+        const { city, date, adminId } = req.body
+        const users = readUsers()
+        const admin = users.find(user => user.id === adminId && isAdminUser(user))
+        if (!admin) return res.status(401).json({ error: 'Unauthorized: Admin access required' })
+        if (!String(city || '').trim() || !String(date || '').trim()) return res.status(400).json({ error: 'Event name and date are required' })
+
+        const event = { id: Date.now().toString(), city: String(city).trim(), date: String(date).trim() }
+        const events = readEvents()
+        events.push(event)
+        writeEvents(events)
+        res.status(201).json({ event })
+    } catch (error) {
+        res.status(500).json({ error: 'Failed to create event' })
     }
 })
 

@@ -72,6 +72,47 @@
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 20px;
+    animation: product-grid-switch 0.35s ease-out both;
+}
+
+.product-card {
+    animation: product-card-switch 0.35s ease-out both;
+}
+
+.product-card:nth-child(2) {
+    animation-delay: 0.04s;
+}
+
+.product-card:nth-child(3) {
+    animation-delay: 0.08s;
+}
+
+.product-card:nth-child(4) {
+    animation-delay: 0.12s;
+}
+
+@keyframes product-grid-switch {
+    from {
+        opacity: 0.4;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes product-card-switch {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .product-card {
@@ -319,6 +360,44 @@ body.mobile-view .product-card-details {
 
 .back-home-button {
     margin-top: 36px;
+}
+
+.store-floating-cart {
+    position: fixed;
+    right: 24px;
+    bottom: 24px;
+    z-index: 80;
+    display: grid;
+    width: 52px;
+    height: 52px;
+    place-items: center;
+    border: 1px solid rgba(255, 255, 255, 0.42);
+    border-radius: 50%;
+    background: rgba(23, 23, 23, 0.58);
+    color: var(--surface);
+    cursor: pointer;
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+    backdrop-filter: blur(10px);
+    transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.store-floating-cart:hover,
+.store-floating-cart:focus-visible {
+    background: rgba(23, 23, 23, 0.94);
+    outline: none;
+    transform: translateY(-3px);
+}
+
+.store-floating-cart .cart-count {
+    top: 3px;
+    right: 3px;
+}
+
+@media (max-width: 640px) {
+    .store-floating-cart {
+        right: 16px;
+        bottom: 16px;
+    }
 }
 
 .buy-button:disabled {

@@ -55,6 +55,33 @@
     color: var(--muted);
 }
 
+.admin-orders-header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.download-orders-button {
+    padding: 10px 14px;
+    border: 1px solid var(--ink);
+    border-radius: var(--radius);
+    background: var(--ink);
+    color: var(--surface);
+    cursor: pointer;
+    font-weight: 600;
+}
+
+.download-orders-button:hover:not(:disabled) {
+    opacity: 0.75;
+}
+
+.download-orders-button:disabled {
+    border-color: var(--line);
+    background: var(--line);
+    color: var(--muted);
+    cursor: not-allowed;
+}
+
 .admin-order-list {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));

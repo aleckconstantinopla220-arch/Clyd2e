@@ -84,8 +84,7 @@ The frontend will run on <http://localhost:5173>
 - Shipping status view
 - Admin order management
 
-The admin account is `aleckconstantinopla220@gmail.com`. You can override this
-address at runtime with the `ADMIN_EMAIL` environment variable.
+The only admin account is `aleckconstantinopla220@gmail.com`.
 
 ### Database (users.json)
 

@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import * as XLSX from 'xlsx'
 import Sidebar from './Sidebar'
 import UpperTab from './UpperTab'
 import { ADMIN_EMAIL, API_BASE_URL, formatPrice } from '../config'
 import '../styles/Home.css'
 import '../styles/AdminOrders.css'
+
+const pendingPreOrderStatuses = ['Pre-order', 'Pre-Order', 'Preorder', 'pre-order', 'pre order', 'Pre Order']
 
 export default function AdminOrders() {
     const navigate = useNavigate()
@@ -33,6 +36,26 @@ export default function AdminOrders() {
     const handleLogout = () => {
         localStorage.removeItem('user')
         navigate('/home')
+    }
+
+    const downloadOrdersExcel = () => {
+        const rows = orders
+            .filter(order => isPreOrderOrder(order) && pendingPreOrderStatuses.includes(order.status))
+            .map(order => ({
+                Name: order.username || order.email || 'Unknown user',
+                Email: order.email || '',
+                Items: Object.values(order.items.reduce((counts, item) => ({
+                    ...counts,
+                    [item.id]: { name: item.name || 'Unnamed item', quantity: (counts[item.id]?.quantity || 0) + 1 }
+                }), {})).map(item => `${item.quantity}x ${item.name}`).join(', '),
+                'Phone Number': order.phone || '',
+                'Order Number': order.id
+            }))
+        const worksheet = XLSX.utils.json_to_sheet(rows, { header: ['Name', 'Email', 'Items', 'Phone Number', 'Order Number'] })
+        worksheet['!cols'] = [{ wch: 28 }, { wch: 32 }, { wch: 48 }, { wch: 18 }, { wch: 18 }]
+        const workbook = XLSX.utils.book_new()
+        XLSX.utils.book_append_sheet(workbook, worksheet, 'Orders')
+        XLSX.writeFile(workbook, `clyd2e-orders-${new Date().toISOString().slice(0, 10)}.xlsx`)
     }
 
     const updateOrderStatus = (orderId, status) => {
@@ -85,7 +108,7 @@ export default function AdminOrders() {
     const [activeTab, setActiveTab] = useState('pending')
     const visibleOrders = [...orders]
         .filter(order => {
-            if (activeTab === 'preorder') return isPreOrderOrder(order) && ['Pre-order', 'Pre-Order', 'Preorder', 'pre-order', 'pre order', 'Pre Order'].includes(order.status)
+            if (activeTab === 'preorder') return isPreOrderOrder(order) && pendingPreOrderStatuses.includes(order.status)
             if (activeTab === 'pending') return ['Order confirmed', 'Purchased'].includes(order.status) && !isPreOrderOrder(order)
             if (activeTab === 'shipping') return order.status === 'Order completed' && !isPreOrderOrder(order)
             if (activeTab === 'completed') return ['Completed', 'Shipped'].includes(order.status) && !isPreOrderOrder(order)
@@ -123,7 +146,12 @@ export default function AdminOrders() {
                             <h1 className="module-page-title">Orders</h1>
                             <p className="module-page-description">View purchases from every user.</p>
                         </div>
-                        <span className="order-count">{visibleOrders.length} order{visibleOrders.length === 1 ? '' : 's'}</span>
+                        <div className="admin-orders-header-actions">
+                            <span className="order-count">{visibleOrders.length} order{visibleOrders.length === 1 ? '' : 's'}</span>
+                            {activeTab === 'preorder' && <button type="button" className="download-orders-button" onClick={downloadOrdersExcel} disabled={visibleOrders.length === 0}>
+                                Download Excel
+                            </button>}
+                        </div>
                     </header>
 
                     {error && <p className="admin-orders-message">{error}</p>}

@@ -119,7 +119,7 @@ export default function Store() {
                             ))}
                         </nav>
 
-                        <section className="product-grid" aria-label="Products">
+                        <section className="product-grid" key={selectedCategory} aria-label="Products">
                             {visibleProducts.map(product => (
                                 <article className="product-card" key={product.id}>
                                     <div className="product-image" aria-label={`${product.name} product image`}>
@@ -160,6 +160,10 @@ export default function Store() {
                     </main>
                 </div>
             </div>
+            <button type="button" className="store-floating-cart" onClick={() => navigate('/cart')} aria-label={`Shopping cart with ${cart.length} items`} title="Shopping cart">
+                <span className="cart-icon" aria-hidden="true" />
+                {cart.length > 0 && <span className="cart-count">{cart.length}</span>}
+            </button>
         </div>
     )
 }
