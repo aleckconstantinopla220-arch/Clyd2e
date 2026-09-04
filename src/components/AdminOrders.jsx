@@ -52,7 +52,6 @@ export default function AdminOrders() {
 
     const handleRefundOrder = orderId => {
         updateOrderStatus(orderId, 'Refunded')
-        setActiveTab('pending')
         setOrderToRemove(null)
     }
 
@@ -62,13 +61,13 @@ export default function AdminOrders() {
     }
 
     const confirmShippedOrder = orderId => {
-        const nextStatus = activeTab === 'shipping' ? 'Completed' : 'Completion listed'
+        const nextStatus = activeTab === 'shipping' || activeTab === 'preorder' ? 'Completed' : 'Completion listed'
 
         updateOrderStatus(orderId, nextStatus)
 
         if (activeTab === 'shipping') {
             setActiveTab('completed')
-        } else if (activeTab === 'completed') {
+        } else if (activeTab === 'completed' || activeTab === 'preorder') {
             setActiveTab('completion-list')
         }
 
@@ -86,11 +85,11 @@ export default function AdminOrders() {
     const [activeTab, setActiveTab] = useState('pending')
     const visibleOrders = [...orders]
         .filter(order => {
-            if (activeTab === 'preorder') return isPreOrderOrder(order) && order.status !== 'Refunded'
+            if (activeTab === 'preorder') return isPreOrderOrder(order) && ['Pre-order', 'Pre-Order', 'Preorder', 'pre-order', 'pre order', 'Pre Order'].includes(order.status)
             if (activeTab === 'pending') return ['Order confirmed', 'Purchased'].includes(order.status) && !isPreOrderOrder(order)
             if (activeTab === 'shipping') return order.status === 'Order completed' && !isPreOrderOrder(order)
             if (activeTab === 'completed') return ['Completed', 'Shipped'].includes(order.status) && !isPreOrderOrder(order)
-            if (activeTab === 'completion-list') return order.status === 'Completion listed' && !isPreOrderOrder(order)
+            if (activeTab === 'completion-list') return order.status === 'Completion listed' || (order.status === 'Completed' && isPreOrderOrder(order))
             if (activeTab === 'refunded') return order.status === 'Refunded'
             return true
         })
@@ -185,7 +184,7 @@ export default function AdminOrders() {
                                             </button>
                                             <button type="button" className="complete-order-button" onClick={event => {
                                                 event.stopPropagation()
-                                                updateOrderStatus(order.id, 'Completed')
+                                                setOrderToRemove(order)
                                             }}>
                                                 Complete
                                             </button>
@@ -286,8 +285,8 @@ export default function AdminOrders() {
             {orderToRemove && (
                 <div className="order-modal-backdrop" onClick={() => setOrderToRemove(null)}>
                     <section className="order-confirmation-dialog" role="dialog" aria-modal="true" aria-labelledby="remove-order-title" onClick={event => event.stopPropagation()}>
-                        <p className="module-page-label">{activeTab === 'completed' ? 'Completion confirmation' : 'Shipping confirmation'}</p>
-                        <h2 id="remove-order-title">{activeTab === 'completed' ? 'Complete this order?' : 'Ship this order?'}</h2>
+                        <p className="module-page-label">{activeTab === 'completed' || activeTab === 'preorder' ? 'Completion confirmation' : 'Shipping confirmation'}</p>
+                        <h2 id="remove-order-title">{activeTab === 'completed' || activeTab === 'preorder' ? 'Complete this order?' : 'Ship this order?'}</h2>
                         <p className="order-confirmation-details">
                             {orderToRemove.username}{orderToRemove.email ? ` · ${orderToRemove.email}` : ''}
                         </p>
@@ -303,7 +302,7 @@ export default function AdminOrders() {
                         <div className="order-confirmation-actions">
                             <button type="button" className="undo-order-button" onClick={() => setOrderToRemove(null)}>Cancel</button>
                             <button type="button" className="complete-order-button" onClick={() => confirmShippedOrder(orderToRemove.id)}>
-                                {activeTab === 'completed' ? 'Confirm Complete' : 'Confirm Ship'}
+                                {activeTab === 'completed' || activeTab === 'preorder' ? 'Confirm Complete' : 'Confirm Ship'}
                             </button>
                         </div>
                     </section>
